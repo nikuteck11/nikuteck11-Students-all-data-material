@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>NIKUTECK11</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg: #f6f8fb;
+            --card: #ffffff;
+            --muted: #6b7280;
+            --accent: linear-gradient(90deg,#7c3aed,#06b6d4);
+            --glass: rgba(255,255,255,0.6);
+            --radius: 12px;
+            --shadow: 0 8px 30px rgba(16,24,40,0.06);
+            --shadow-strong: 0 20px 40px rgba(16,24,40,0.12);
+            --success: #10b981;
+        }
+
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{
+            margin:0;
+            font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+            background:var(--bg);
+            color:#0f172a;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+        }
+
+        .app {
+            max-width:1200px;
+            margin:28px auto;
+            padding:20px;
+        }
+
+        header.app-header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            margin-bottom:20px;
+        }
+
+        .brand{
+            display:flex;align-items:center;gap:12px;
+        }
+        .brand .logo{
+            width:54px;height:54px;border-radius:12px;
+            background:var(--accent);
+            display:flex;align-items:center;justify-content:center;color:white;
+            box-shadow:var(--shadow-strong);
+            font-size:20px;
+        }
+        .brand h1{font-size:1.15rem;margin:0;font-weight:700}
+        .brand p{margin:0;font-size:0.85rem;color:var(--muted)}
+
+        .controls{
+            display:flex;gap:10px;align-items:center;
+        }
+
+        .search {
+            display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.9);
+            padding:8px 12px;border-radius:999px;box-shadow:var(--shadow);
+            width:420px;
+        }
+        .search input{border:0;outline:0;background:transparent;width:100%;font-size:0.95rem}
+        .btn{
+            border:0;cursor:pointer;padding:8px 12px;border-radius:8px;font-weight:600;
+            display:inline-flex;align-items:center;gap:8px;
+        }
+        .btn-ghost{background:transparent;color:var(--muted);box-shadow:none}
+        .btn-primary{background:linear-gradient(90deg,#6366f1,#06b6d4);color:white;box-shadow:var(--shadow)}
+        .toggle{
+            display:flex;gap:8px;padding:6px;border-radius:10px;background:rgba(255,255,255,0.85);box-shadow:var(--shadow)
+        }
+
+        .top-panel{
+            display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;
+        }
+
+        .filters{
+            display:flex;gap:10px;align-items:center;
+        }
+        select, .small-input{
+            padding:8px 10px;border-radius:10px;border:1px solid #e6eef8;background:white;font-weight:600;
+        }
+
+        .main-grid{
+            display:grid;grid-template-columns:280px 1fr;gap:18px;
+        }
+
+        .sidebar{
+            background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
+            border-radius:12px;padding:18px;box-shadow:var(--shadow);
+            height:fit-content;
+            position:sticky;top:28px;
+        }        .sidebar h3{margin:0 0 8px 0;font-size:0.95rem}
+        .nav-list{display:flex;flex-direction:column;gap:8px}
+        .nav-item{
+            display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--muted);
+            cursor:pointer;font-weight:600;background:transparent;border:1px dashed transparent;
+        }
+        .nav-item:hover{background:#fff}
+        .nav-item.active{background:linear-gradient(90deg,#eef2ff,#f0fdfa);border:1px solid rgba(99,102,241,0.08);color:#111827}
+
+        .files-area{
+            display:flex;flex-direction:column;gap:14px;
+        }
+
+        .toolbar{
+            display:flex;align-items:center;justify-content:space-between;gap:12px;
+        }
+
+        .stats-row{
+            display:flex;gap:12px;flex-wrap:wrap;
+        }
+        .stat{
+            background:linear-gradient(180deg,#fff,#fbfdff);padding:12px;border-radius:12px;box-shadow:var(--shadow);
+            min-width:140px;display:flex;flex-direction:column;gap:6px;
+        }
+        .stat .value{font-weight:700;font-size:1.1rem}
+        .stat .label{font-size:0.85rem;color:var(--muted)}
+
+        .files-wrap{
+            display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;
+        }
+
+        .file-card{
+            background:var(--card);border-radius:12px;padding:12px;box-shadow:var(--shadow);
+            display:flex;flex-direction:column;gap:10px;transition:transform .18s ease,box-shadow .18s ease;
+            border:1px solid rgba(15,23,42,0.03);
+        }
+        .file-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-strong)}
+        .file-head{display:flex;gap:10px;align-items:center}
+        .file-icon{
+            width:54px;height:54px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:white;
+            flex-shrink:0;
+        }
+        .file-meta{display:flex;flex-direction:column;gap:4px}
+        .file-title{font-weight:700;font-size:0.98rem}
+        .file-sub{font-size:0.82rem;color:var(--muted)}
+
+        .file-actions{display:flex;gap:8px;margin-top:auto;align-items:center}
+        .pill{font-size:0.8rem;padding:6px 8px;border-radius:999px;background:rgba(0,0,0,0.03);color:var(--muted);font-weight:600}
+
+        .modal-root{
+            position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60;
+            pointer-events:none;
+        }
+        .modal-backdrop{
+            position:absolute;inset:0;background:rgba(255,255,255,0.35);backdrop-filter:blur(6px);
+            pointer-events:auto;
+        }
+        .modal-panel{
+            position:relative;z-index:70;pointer-events:auto;width:min(920px,96%);max-height:86vh;overflow:hidden;border-radius:14px;
+            background:linear-gradient(180deg,#fff,#fcfeff);box-shadow:0 30px 50px rgba(2,6,23,0.2);
+            display:flex;flex-direction:column;
+        }
+        .modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #eef2f7}
+        .modal-body{padding:14px;overflow:auto}
+        .modal-preview{width:100%;height:60vh;background:#f8fafc;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:auto}
+        .modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid #eef2f7}
+
+        .empty-state{padding:24px;border-radius:12px;background:white;box-shadow:var(--shadow);text-align:center;color:var(--muted)}
+        
+        /* New sections styling */
+        .info-section, .about-section {
+            background:linear-gradient(180deg,#fff,#fbfdff);
+            border-radius:12px;
+            padding:18px;
+            box-shadow:var(--shadow);
+            margin-bottom:18px;
+        }
+        
+        .info-section h2, .about-section h2 {
+            margin-top:0;
+            font-size:1.2rem;
+            color:#0f172a;
+            border-bottom:1px solid #eef2f7;
+            padding-bottom:10px;
+        }
+        
+        .social-links {
+            display:flex;
+            gap:12px;
+            margin-top:12px;
+        }
+        
+        .social-link {
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            width:40px;
+            height:40px;
+            border-radius:10px;
+            background:var(--accent);
+            color:white;
+            text-decoration:none;
+            transition:transform .2s ease;
+        }
+        
+        .social-link:hover {
+            transform:translateY(-3px);
+        }
+
+        @media (max-width:980px){
+            .search{width:260px}
+            .main-grid{grid-template-columns:1fr}
+            .sidebar{position:relative;top:unset}
+        }
+        @media (max-width:560px){
+            .search{display:none}
+            .brand h1{font-size:1rem}
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo"><i class="fas fa-graduation-cap"></i></div>
+            <div>
+                <h1>NikuTeck11hub</h1>
+                <p>all-material</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="search">
+                <i class="fas fa-search" style="color:var(--muted)"></i>
+                <input id="search" placeholder="Search files, folders, types..." aria-label="search">
+                <button class="btn btn-ghost" id="clear-search" title="Clear" style="display:none"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="toggle" title="View toggle">
+                <button class="btn btn-ghost" id="view-grid" aria-pressed="true"><i class="fas fa-th-large"></i></button>
+                <button class="btn btn-ghost" id="view-list" aria-pressed="false"><i class="fas fa-list"></i></button>
+            </div>
+
+            <!-- Upload UI intentionally removed: uploads must be done directly to GitHub folders -->
+            <div style="font-size:0.85rem;color:var(--muted);margin-left:8px" id="last-updated">Last updated: —</div>
+        </div>
+    </header>
+
+    <section class="top-panel">
+        <div class="stats-row">
+            <div class="stat">
+                <span class="value" id="total-files">0</span>
+                <span class="label">Total Files</span>
+            </div>
+            <div class="stat">
+                <span class="value" id="total-cats">0</span>
+                <span class="label">Categories</span>
+            </div>
+            <div class="stat">
+                <span class="value" id="active-users">500+</span>
+                <span class="label">Active Users</span>
+            </div>
+        </div>
+
+        <div class="filters">
+            <select id="filter-type" title="Filter by file type">
+                <option value="all">All Types</option>
+                <option value="pdf">PDF</option>
+                <option value="image">Images</option>
+                <option value="doc">Docs</option>
+                <option value="ppt">Presentations</option>
+                <option value="other">Other</option>
+            </select>
+
+            <select id="sort-by" title="Sort">
+                <option value="name-asc">Name A–Z</option>
+                <option value="name-desc">Name Z–A</option>
+                <option value="size-desc">Size Large → Small</option>
+                <option value="size-asc">Size Small → Large</option>
+            </select>
+        </div>
+    </section>
+
+    <div class="main-grid">
+        <aside class="sidebar">
+            <h3>Navigation</h3>
+            <div class="nav-list">
+                <div class="nav-item active" data-section="dashboard" onclick="navigate('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
+                <div class="nav-item" data-section="all-files" onclick="navigate('all-files')"><i class="fas fa-folder-open"></i> All Files</div>
+                <div class="nav-item" data-section="recent" onclick="navigate('recent')"><i class="fas fa-history"></i> Recent</div>
+                <div class="nav-item" data-section="info" onclick="navigate('info')"><i class="fas fa-info-circle"></i> Information</div>
+                <div class="nav-item" data-section="about" onclick="navigate('about')"><i class="fas fa-user"></i> About Me</div>
+            </div>
+
+            <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f7">
+            <h3>Categories</h3>
+            <div class="nav-list" id="category-list">
+                <div class="nav-item" onclick="loadFolder('notes')"><i class="fas fa-sticky-note"></i> Study Notes <span style="margin-left:auto;color:var(--muted)" id="notes-count">—</span></div>
+                <div class="nav-item" onclick="loadFolder('papers')"><i class="fas fa-clipboard-list"></i> Question Papers <span style="margin-left:auto;color:var(--muted)" id="papers-count">—</span></div>
+                <div class="nav-item" onclick="loadFolder('books')"><i class="fas fa-book"></i> Reference Books <span style="margin-left:auto;color:var(--muted)" id="books-count">—</span></div>
+            </div>
+
+            <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f7">
+            <div style="font-size:0.85rem;color:var(--muted)">Favorites</div>
+            <div id="favorites-list" style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+        </aside>
+
+        <main class="files-area">
+            <!-- Dashboard View -->
+            <div id="dashboard-view">
+                <div class="toolbar">
+                    <h2>Dashboard</h2>
+                </div>
+                
+                <div class="files-wrap" id="files-wrap" aria-live="polite">
+                    <!-- file cards injected here -->
+                </div>
+            </div>
+            
+            <!-- Information Section -->
+            <div id="info-view" style="display:none">
+                <div class="info-section">
+                    <h2>Information</h2>
+                    <p>Welcome to NikuTeck11hub - your one-stop destination for educational resources!</p>
+                    
+                    <h3>How to Use This Platform</h3>
+                    <ul>
+                        <li>Browse study materials by category using the sidebar</li>
+                        <li>Use the search bar to find specific files</li>
+                        <li>Filter files by type using the dropdown menu</li>
+                        <li>Click on any file to preview it</li>
+                        <li>Download files directly using the download button</li>
+                        <li>Mark files as favorites for quick access</li>
+                    </ul>
+                    
+                    <h3>Supported File Types</h3>
+                    <ul>
+                        <li>PDF Documents</li>
+                        <li>Images (JPG, PNG, JPEG)</li>
+                        <li>Word Documents (DOC, DOCX)</li>
+                        <li>PowerPoint Presentations (PPT, PPTX)</li>
+                        <li>Text Files (TXT)</li>
+                        <li>ZIP Archives</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- About Me Section -->
+            <div id="about-view" style="display:none">
+                <div class="about-section">
+                    <h2>About Me</h2>
+                    <p>Hello! I'm NikuTeck11, the creator of this educational resource hub.</p>
+                    <p>This platform is designed to help students access quality study materials easily. All resources are carefully curated and organized to make learning more efficient.</p>
+                    
+                    <h3>Connect With Me</h3>
+                    <div class="social-links">
+                        <a href="https://github.com/nikuteck11" class="social-link" target="_blank" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="social-link" title="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link" title="LinkedIn">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="https://www.instagram.com/its.ramsvrup05?igsh=MjZhNTVxMWc4cW1l" class="social-link" title="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="empty" style="display:none">
+                <div class="empty-state">
+                    <h3>No files found</h3>
+                    <p>Add files to your GitHub repository folders (notes, papers, books) to see them listed here.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Modal (subtle backdrop so list remains visible underneath) -->
+<div id="modal-root" class="modal-root" role="dialog" aria-hidden="true">
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-panel" role="document" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+            <div>
+                <strong id="modal-title">Preview</strong>
+                <div id="modal-sub" style="font-size:0.85rem;color:var(--muted)"></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-ghost" id="modal-download"><i class="fas fa-download"></i> Download</button>
+                <button class="btn btn-ghost" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div class="modal-preview" id="modal-preview">
+                <!-- iframe / img / pre content -->
+            </div>
+
+            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+                <div><div style="font-size:0.8rem;color:var(--muted)">File</div><div id="detail-name" style="font-weight:700"></div></div>
+                <div><div style="font-size:0.8rem;color:var(--muted)">Type</div><div id="detail-type"></div></div>
+                <div><div style="font-size:0.8rem;color:var(--muted)">Size</div><div id="detail-size"></div></div>
+                <div><div style="font-size:0.8rem;color:var(--muted)">Last Modified</div><div id="detail-modified"></div></div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+            <a id="modal-open-raw" class="btn btn-primary" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> Open Raw</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    //Configuration: GitHub repo & folders
+    const GITHUB_USERNAME = "nikuteck11";
+    const REPO_NAME = "nikuteck11-Students-all-data-material";
+    const BRANCH = "main";
+    const folders = ['notes','papers','books'];
+
+    // Poll interval (ms) — site will check GitHub periodically and refresh UI
+    const POLL_INTERVAL_MS = 60 * 1000; // 60 seconds
+
+    // State
+    let allFiles = [];
+    let favorites = new Set(JSON.parse(localStorage.getItem('favorites')||'[]'));
+    let selectedView = 'grid';
+
+    const fileTypes = {
+        pdf:{icon:'📄',category:'pdf',color:'#ef4444'},
+        jpg:{icon:'🖼️',category:'image',color:'#0ea5e9'},
+        jpeg:{icon:'🖼️',category:'image',color:'#0ea5e9'},
+        png:{icon:'🖼️',category:'image',color:'#0ea5e9'},
+        doc:{icon:'📝',category:'doc',color:'#10b981'},
+        docx:{icon:'📝',category:'doc',color:'#10b981'},
+        ppt:{icon:'📊',category:'ppt',color:'#f59e0b'},
+        pptx:{icon:'📊',category:'ppt',color:'#f59e0b'},
+        txt:{icon:'📃',category:'other',color:'#94a3b8'},
+        zip:{icon:'📦',category:'other',color:'#7c3aed'}
+    };
+
+    function fmtName(name){
+        return name.replace(/\.[^/.]+$/,"").replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    }
+    function fmtSize(size){
+        if(size===0) return '0 B';
+        const k=1024,s=['B','KB','MB','GB']; let i=Math.floor(Math.log(size)/Math.log(k));
+        return (size/Math.pow(k,i)).toFixed(2)+' '+s[i];
+    }
+    function extOf(name){
+        return (name.split('.').pop()||'').toLowerCase();
+    }
+    function typeCategory(ext){
+        return (fileTypes[ext] && fileTypes[ext].category) || (['jpg','jpeg','png'].includes(ext)?'image':'other');
+    }
+
+    async function loadAll(){
+        // show loading
+        document.getElementById('files-wrap').innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        allFiles = [];
+
+        await Promise.all(folders.map(async folder=>{
+            try{
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${folder}?ts=${Date.now()}`);
+                if(!res.ok) return;
+                const data = await res.json();
+                const files = data.filter(f=>f.type==='file').map(f=>({
+                    ...f,
+                    folder,
+                    displayName:fmtName(f.name),
+                    extension:extOf(f.name),
+                    category:typeCategory(extOf(f.name))
+                }));
+                allFiles = allFiles.concat(files);
+            }catch(err){
+                console.warn('folder load fail',folder,err);
+            }
+        }));
+
+        // update counts and UI
+        document.getElementById('total-files').textContent = allFiles.length;
+        document.getElementById('total-cats').textContent = folders.length;
+        folders.forEach(f=>{
+            const cnt = allFiles.filter(x=>x.folder===f).length;
+            const el = document.getElementById(`${f}-count`);
+            if(el) el.textContent = `${cnt} files`;
+        });
+
+        renderFiles(allFiles);
+        renderFavorites();
+        updateLastUpdated();
+    }
+
+    function renderFavorites(){
+        const wrap = document.getElementById('favorites-list');
+        wrap.innerHTML = '';
+        const favs = allFiles.filter(f=>favorites.has(f.path));
+        if(favs.length===0){
+            wrap.innerHTML = '<div style="font-size:0.85rem;color:var(--muted)">No favorites yet</div>';
+            return;
+        }
+        favs.slice(0,6).forEach(f=>{
+            const el = document.createElement('div');
+            el.className='nav-item';
+            el.innerHTML = `<i class="fas fa-file-alt"></i><div style="margin-left:8px">${f.displayName}</div><div style="margin-left:auto;color:var(--muted);font-weight:700">${f.folder}</div>`;
+            el.onclick = ()=>previewFileByPath(f.path);
+            wrap.appendChild(el);
+        });
+    }
+
+    function renderFiles(files){
+        const wrap = document.getElementById('files-wrap');
+        const empty = document.getElementById('empty');
+        if(!files || files.length===0){
+            wrap.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+
+        empty.style.display = 'none';
+        wrap.innerHTML = '';
+        const viewList = selectedView==='list';
+
+        files.forEach(f=>{
+            const card = document.createElement('div');
+            card.className = 'file-card';
+            if(viewList){
+                card.style.gridColumn = '1/-1';
+                card.style.display = 'flex';
+            }
+
+            const ft = fileTypes[f.extension] || {icon:'📁',color:'#58a6ff'};
+
+            card.innerHTML = `
+                <div class="file-head" style="width:100%">
+                    <div class="file-icon" style="background:${ft.color}">
+                        ${ft.icon}
+                    </div>
+                    <div class="file-meta" style="flex:1">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <div class="file-title">${f.displayName}</div>
+                            ${favorites.has(f.path) ? '<span class="pill" style="background:rgba(16,185,129,0.12);color:var(--success)">★ Favorite</span>' : ''}
+                        </div>
+                        <div class="file-sub">${f.folder} · ${f.extension.toUpperCase()} · ${f.size ? fmtSize(f.size) : '—'}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-ghost" title="Preview" onclick="previewFileByPath('${f.path}')"><i class="fas fa-eye"></i></button>
+                            <a class="btn btn-ghost" title="Open raw" href="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${f.folder}/${encodeURIComponent(f.name)}" target="_blank"><i class="fas fa-external-link-alt"></i></a>
+                            <button class="btn btn-ghost" title="Favorite" onclick="toggleFavorite('${f.path}', event)"><i class="fas fa-star"></i></button>
+                        </div>
+                        <a class="pill" href="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${f.folder}/${encodeURIComponent(f.name)}" download="${f.name}">Download</a>
+                    </div>
+                </div>
+            `;
+
+            wrap.appendChild(card);
+        });
+    }
+
+    function toggleFavorite(path, ev){
+        ev.stopPropagation();
+        if(favorites.has(path)) favorites.delete(path);
+        else favorites.add(path);
+        localStorage.setItem('favorites', JSON.stringify(Array.from(favorites)));
+        renderFavorites();
+        renderFiles(filteredAndSorted());
+    }
+
+    function navigate(section){
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        const node = document.querySelector(`.nav-item[data-section="${section}"]`);
+        if(node) node.classList.add('active');
+        
+        // Hide all views
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('info-view').style.display = 'none';
+        document.getElementById('about-view').style.display = 'none';
+        
+        // Show selected view
+        if(section==='dashboard'){
+            document.getElementById('dashboard-view').style.display = 'block';
+            document.getElementById('page-title').textContent='Dashboard';
+            renderFiles(allFiles);
+        }
+        if(section==='all-files'){
+            document.getElementById('dashboard-view').style.display = 'block';
+            document.getElementById('page-title').textContent='All Study Materials';
+            renderFiles(allFiles);
+        }
+        if(section==='recent'){
+            document.getElementById('dashboard-view').style.display = 'block';
+            document.getElementById('page-title').textContent='Recent Files';
+            renderFiles(allFiles);
+        }
+        if(section==='info'){
+            document.getElementById('info-view').style.display = 'block';
+            document.getElementById('page-title').textContent='Information';
+        }
+        if(section==='about'){
+            document.getElementById('about-view').style.display = 'block';
+            document.getElementById('page-title').textContent='About Me';
+        }
+    }
+
+    async function loadFolder(folder){
+        navigate('all-files');
+        document.getElementById('page-title').textContent = folder.charAt(0).toUpperCase()+folder.slice(1);
+        const files = allFiles.filter(f=>f.folder===folder);
+        renderFiles(files);
+    }
+
+    async function previewFileByPath(path){
+        const file = allFiles.find(x=>x.path===path);
+        if(!file) return;
+        previewFile(file);
+    }
+
+    async function previewFile(file){
+        const modalRoot = document.getElementById('modal-root');
+        const preview = document.getElementById('modal-preview');
+        const title = document.getElementById('modal-title');
+        const sub = document.getElementById('modal-sub');
+        const detailName = document.getElementById('detail-name');
+        const detailType = document.getElementById('detail-type');
+        const detailSize = document.getElementById('detail-size');
+        const detailMod = document.getElementById('detail-modified');
+        const modalOpenRaw = document.getElementById('modal-open-raw');
+        const modalDownload = document.getElementById('modal-download');
+
+        const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${file.folder}/${encodeURIComponent(file.name)}`;
+
+        title.textContent = file.displayName;
+        sub.textContent = `${file.name} • ${file.folder}`;
+        detailName.textContent = file.name;
+        detailType.textContent = (file.extension || 'file').toUpperCase();
+        detailSize.textContent = file.size ? fmtSize(file.size) : 'Unknown';
+        detailMod.textContent = 'Loading...';
+        modalOpenRaw.href = rawUrl;
+        modalDownload.onclick = ()=> window.open(rawUrl, '_blank');
+
+        preview.innerHTML = '<div style="text-align:center;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Loading preview...</div>';
+
+        try{
+            const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.folder}/${file.name}&per_page=1`);
+            if(commits.ok){
+                const cdata = await commits.json();
+                if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
+                    const d = new Date(cdata[0].commit.author.date);
+                    detailMod.textContent = d.toLocaleString();
+                } else detailMod.textContent = 'Unknown';
+            } else {
+                detailMod.textContent = 'Unknown';
+            }
+        }catch(e){
+            detailMod.textContent = 'Unknown';
+        }
+
+        const ext = (file.extension||'').toLowerCase();
+        if(ext === 'pdf'){
+            // Use Google Docs PDF viewer for PDF preview
+            const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+            preview.innerHTML = `<iframe src="${pdfViewerUrl}" style="width:100%;height:100%;border:0;border-radius:6px"></iframe>`;
+        } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
+            preview.innerHTML = `<img src="${rawUrl}" alt="${file.displayName}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px"/>`;
+        } else if(['txt','md','js','py','json','html','css'].includes(ext)){
+            try{
+                const txt = await fetch(rawUrl).then(r=>r.ok?r.text():'Unable to load');
+                preview.innerHTML = `<pre style="white-space:pre-wrap;text-align:left;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;line-height:1.45;padding:12px;border-radius:6px;background:#0f172a;color:#f8fafc">${escapeHtml(txt)}</pre>`;
+            }catch(e){
+                preview.innerHTML = `<div style="text-align:center;color:var(--muted)">Unable to show preview</div>`;
+            }
+        } else {
+            preview.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fas fa-file" style="font-size:40px"></i><div style="margin-top:8px">Preview not available for this file type.</div></div>`;
+        }
+
+        modalRoot.style.display = 'flex';
+        modalRoot.setAttribute('aria-hidden','false');
+    }
+
+    function closeModal(){
+        const modalRoot = document.getElementById('modal-root');
+        modalRoot.style.display = 'none';
+        modalRoot.setAttribute('aria-hidden','true');
+        document.getElementById('modal-preview').innerHTML = '';
+    }
+
+    function escapeHtml(unsafe){
+        return unsafe.replace(/[&<"'>]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]});
+    }
+
+    function filteredAndSorted(){
+        const q = (document.getElementById('search').value||'').trim().toLowerCase();
+        const type = document.getElementById('filter-type').value;
+        const sort = document.getElementById('sort-by').value;
+
+        let arr = allFiles.slice();
+
+        if(q.length>0){
+            arr = arr.filter(f => f.displayName.toLowerCase().includes(q) || f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q));
+        }
+
+        if(type !== 'all'){
+            if(type === 'image') arr = arr.filter(f=>['image'].includes(f.category));
+            else arr = arr.filter(f=>f.extension===type || f.category===type);
+        }
+
+        if(sort === 'name-asc') arr.sort((a,b)=>a.displayName.localeCompare(b.displayName));
+        if(sort === 'name-desc') arr.sort((a,b)=>b.displayName.localeCompare(a.displayName));
+        if(sort === 'size-asc') arr.sort((a,b)=> (a.size||0)-(b.size||0));
+        if(sort === 'size-desc') arr.sort((a,b)=> (b.size||0)-(a.size||0));
+
+        return arr;
+    }
+
+    // Events
+    document.getElementById('search').addEventListener('input', (e)=>{
+        document.getElementById('clear-search').style.display = e.target.value ? 'inline-flex' : 'none';
+        renderFiles(filteredAndSorted());
+    });
+    document.getElementById('clear-search').addEventListener('click', ()=>{
+        document.getElementById('search').value='';
+        document.getElementById('clear-search').style.display='none';
+        renderFiles(filteredAndSorted());
+    });
+
+    document.getElementById('filter-type').addEventListener('change', ()=>renderFiles(filteredAndSorted()));
+    document.getElementById('sort-by').addEventListener('change', ()=>renderFiles(filteredAndSorted()));
+    document.getElementById('view-grid').addEventListener('click', ()=>{
+        selectedView='grid';renderFiles(filteredAndSorted());
+        document.getElementById('view-grid').setAttribute('aria-pressed','true');
+        document.getElementById('view-list').setAttribute('aria-pressed','false');
+    });
+    document.getElementById('view-list').addEventListener('click', ()=>{
+        selectedView='list';renderFiles(filteredAndSorted());
+        document.getElementById('view-grid').setAttribute('aria-pressed','false');
+        document.getElementById('view-list').setAttribute('aria-pressed','true');
+    });
+
+    document.getElementById('refresh').addEventListener('click', async ()=>{
+        await loadAll();
+    });
+
+    // Expose helpers to inline onclick
+    window.previewFileByPath = previewFileByPath;
+    window.toggleFavorite = toggleFavorite;
+    window.loadFolder = loadFolder;
+    window.navigate = navigate;
+
+    function updateLastUpdated(){
+        const el = document.getElementById('last-updated');
+        const now = new Date();
+        el.textContent = 'Last updated: ' + now.toLocaleString();
+    }
+
+    // Polling: auto-refresh from GitHub every POLL_INTERVAL_MS
+    let pollTimer = null;
+    function startPolling(){
+        if(pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(async ()=>{
+            try{
+                await loadAll();
+            }catch(e){
+                console.warn('Auto-refresh failed', e);
+            }
+        }, POLL_INTERVAL_MS);
+    }
+
+    // init
+    (async function init(){
+        await loadAll();
+        startPolling();
+    })();
+</script>
+</body>
+</html>

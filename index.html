@@ -421,9 +421,6 @@
     const BRANCH = "main";
     const folders = ['notes','papers','books'];
 
-    // Poll interval (ms) — site will check GitHub periodically and refresh UI
-    const POLL_INTERVAL_MS = 60 * 1000; // 60 seconds
-
     // State
     let allFiles = [];
     let favorites = new Set(JSON.parse(localStorage.getItem('favorites')||'[]'));
@@ -458,31 +455,97 @@
     }
 
     async function loadAll(){
-        // show loading
+        console.log("Loading files from GitHub...");
         document.getElementById('files-wrap').innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
         allFiles = [];
 
-        await Promise.all(folders.map(async folder=>{
-            try{
-                const res = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${folder}?ts=${Date.now()}`);
-                if(!res.ok) return;
-                const data = await res.json();
-                const files = data.filter(f=>f.type==='file').map(f=>({
-                    ...f,
-                    folder,
-                    displayName:fmtName(f.name),
-                    extension:extOf(f.name),
-                    category:typeCategory(extOf(f.name))
-                }));
-                allFiles = allFiles.concat(files);
-            }catch(err){
-                console.warn('folder load fail',folder,err);
+        // TEMPORARY DEMO DATA - REMOVE WHEN ACTUAL FILES ARE UPLOADED
+        const demoFiles = [
+            {
+                name: "sample-notes.pdf",
+                path: "notes/sample-notes.pdf",
+                folder: "notes",
+                displayName: "Sample Study Notes",
+                extension: "pdf",
+                category: "pdf",
+                size: 1024000,
+                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/notes/sample-notes.pdf`
+            },
+            {
+                name: "math-paper-2023.pdf",
+                path: "papers/math-paper-2023.pdf", 
+                folder: "papers",
+                displayName: "Math Question Paper 2023",
+                extension: "pdf",
+                category: "pdf",
+                size: 2048000,
+                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/papers/math-paper-2023.pdf`
+            },
+            {
+                name: "physics-book.pdf",
+                path: "books/physics-book.pdf",
+                folder: "books",
+                displayName: "Physics Reference Book",
+                extension: "pdf", 
+                category: "pdf",
+                size: 5120000,
+                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/books/physics-book.pdf`
             }
-        }));
+        ];
 
-        // update counts and UI
+        try {
+            // Try to load actual files from GitHub
+            await Promise.all(folders.map(async folder=>{
+                try{
+                    console.log(`Loading folder: ${folder}`);
+                    const res = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${folder}?ts=${Date.now()}`, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json',
+                            'User-Agent': 'NikuTeck11-WebApp'
+                        }
+                    });
+                    
+                    if(!res.ok) {
+                        console.log(`No files in ${folder} or folder doesn't exist`);
+                        return;
+                    }
+                    
+                    const data = await res.json();
+                    console.log(`Files in ${folder}:`, data);
+
+                    const files = data
+                        .filter(f => f.type === 'file' && f.name !== '.gitkeep')
+                        .map(f => ({
+                            ...f,
+                            folder,
+                            displayName: fmtName(f.name),
+                            extension: extOf(f.name),
+                            category: typeCategory(extOf(f.name)),
+                            download_url: f.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${folder}/${encodeURIComponent(f.name)}`
+                        }));
+                    
+                    allFiles = allFiles.concat(files);
+                } catch(err) {
+                    console.warn(`Failed to load ${folder}:`, err);
+                }
+            }));
+
+            // If no actual files found, use demo data
+            if (allFiles.length === 0) {
+                console.log("No actual files found, using demo data");
+                allFiles = demoFiles;
+            }
+
+        } catch (error) {
+            console.error("Error loading files:", error);
+            // Use demo data as fallback
+            allFiles = demoFiles;
+        }
+
+        // Update UI
         document.getElementById('total-files').textContent = allFiles.length;
         document.getElementById('total-cats').textContent = folders.length;
+        
         folders.forEach(f=>{
             const cnt = allFiles.filter(x=>x.folder===f).length;
             const el = document.getElementById(`${f}-count`);
@@ -492,6 +555,8 @@
         renderFiles(allFiles);
         renderFavorites();
         updateLastUpdated();
+        
+        console.log("Total files loaded:", allFiles.length);
     }
 
     function renderFavorites(){
@@ -549,10 +614,10 @@
                     <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
                         <div style="display:flex;gap:6px">
                             <button class="btn btn-ghost" title="Preview" onclick="previewFileByPath('${f.path}')"><i class="fas fa-eye"></i></button>
-                            <a class="btn btn-ghost" title="Open raw" href="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${f.folder}/${encodeURIComponent(f.name)}" target="_blank"><i class="fas fa-external-link-alt"></i></a>
+                            <a class="btn btn-ghost" title="Open raw" href="${f.download_url}" target="_blank"><i class="fas fa-external-link-alt"></i></a>
                             <button class="btn btn-ghost" title="Favorite" onclick="toggleFavorite('${f.path}', event)"><i class="fas fa-star"></i></button>
                         </div>
-                        <a class="pill" href="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${f.folder}/${encodeURIComponent(f.name)}" download="${f.name}">Download</a>
+                        <a class="pill" href="${f.download_url}" download="${f.name}">Download</a>
                     </div>
                 </div>
             `;
@@ -575,40 +640,32 @@
         const node = document.querySelector(`.nav-item[data-section="${section}"]`);
         if(node) node.classList.add('active');
         
-        // Hide all views
         document.getElementById('dashboard-view').style.display = 'none';
         document.getElementById('info-view').style.display = 'none';
         document.getElementById('about-view').style.display = 'none';
         
-        // Show selected view
         if(section==='dashboard'){
             document.getElementById('dashboard-view').style.display = 'block';
-            document.getElementById('page-title').textContent='Dashboard';
             renderFiles(allFiles);
         }
         if(section==='all-files'){
             document.getElementById('dashboard-view').style.display = 'block';
-            document.getElementById('page-title').textContent='All Study Materials';
             renderFiles(allFiles);
         }
         if(section==='recent'){
             document.getElementById('dashboard-view').style.display = 'block';
-            document.getElementById('page-title').textContent='Recent Files';
             renderFiles(allFiles);
         }
         if(section==='info'){
             document.getElementById('info-view').style.display = 'block';
-            document.getElementById('page-title').textContent='Information';
         }
         if(section==='about'){
             document.getElementById('about-view').style.display = 'block';
-            document.getElementById('page-title').textContent='About Me';
         }
     }
 
     async function loadFolder(folder){
         navigate('all-files');
-        document.getElementById('page-title').textContent = folder.charAt(0).toUpperCase()+folder.slice(1);
         const files = allFiles.filter(f=>f.folder===folder);
         renderFiles(files);
     }
@@ -631,7 +688,7 @@
         const modalOpenRaw = document.getElementById('modal-open-raw');
         const modalDownload = document.getElementById('modal-download');
 
-        const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${file.folder}/${encodeURIComponent(file.name)}`;
+        const rawUrl = file.download_url;
 
         title.textContent = file.displayName;
         sub.textContent = `${file.name} • ${file.folder}`;
@@ -644,37 +701,51 @@
 
         preview.innerHTML = '<div style="text-align:center;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Loading preview...</div>';
 
-        try{
-            const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.folder}/${file.name}&per_page=1`);
-            if(commits.ok){
-                const cdata = await commits.json();
-                if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
-                    const d = new Date(cdata[0].commit.author.date);
-                    detailMod.textContent = d.toLocaleString();
-                } else detailMod.textContent = 'Unknown';
-            } else {
+        // For demo files, show success message
+        if (file.name.includes('sample-') || file.name.includes('demo')) {
+            detailMod.textContent = new Date().toLocaleString();
+            preview.innerHTML = `
+                <div style="text-align:center;color:var(--muted);padding:40px">
+                    <i class="fas fa-file-pdf" style="font-size:60px;color:#ef4444;margin-bottom:20px"></i>
+                    <h3>PDF Preview</h3>
+                    <p>This is a demo file. When you upload actual files, they will preview here.</p>
+                    <a href="${rawUrl}" class="btn btn-primary" target="_blank" style="margin-top:20px">
+                        <i class="fas fa-external-link-alt"></i> Open PDF
+                    </a>
+                </div>
+            `;
+        } else {
+            try{
+                const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.folder}/${file.name}&per_page=1`);
+                if(commits.ok){
+                    const cdata = await commits.json();
+                    if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
+                        const d = new Date(cdata[0].commit.author.date);
+                        detailMod.textContent = d.toLocaleString();
+                    } else detailMod.textContent = 'Unknown';
+                } else {
+                    detailMod.textContent = 'Unknown';
+                }
+            }catch(e){
                 detailMod.textContent = 'Unknown';
             }
-        }catch(e){
-            detailMod.textContent = 'Unknown';
-        }
 
-        const ext = (file.extension||'').toLowerCase();
-        if(ext === 'pdf'){
-            // Use Google Docs PDF viewer for PDF preview
-            const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(rawUrl)}&embedded=true`;
-            preview.innerHTML = `<iframe src="${pdfViewerUrl}" style="width:100%;height:100%;border:0;border-radius:6px"></iframe>`;
-        } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
-            preview.innerHTML = `<img src="${rawUrl}" alt="${file.displayName}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px"/>`;
-        } else if(['txt','md','js','py','json','html','css'].includes(ext)){
-            try{
-                const txt = await fetch(rawUrl).then(r=>r.ok?r.text():'Unable to load');
-                preview.innerHTML = `<pre style="white-space:pre-wrap;text-align:left;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;line-height:1.45;padding:12px;border-radius:6px;background:#0f172a;color:#f8fafc">${escapeHtml(txt)}</pre>`;
-            }catch(e){
-                preview.innerHTML = `<div style="text-align:center;color:var(--muted)">Unable to show preview</div>`;
+            const ext = (file.extension||'').toLowerCase();
+            if(ext === 'pdf'){
+                const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+                preview.innerHTML = `<iframe src="${pdfViewerUrl}" style="width:100%;height:100%;border:0;border-radius:6px"></iframe>`;
+            } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
+                preview.innerHTML = `<img src="${rawUrl}" alt="${file.displayName}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px"/>`;
+            } else if(['txt','md','js','py','json','html','css'].includes(ext)){
+                try{
+                    const txt = await fetch(rawUrl).then(r=>r.ok?r.text():'Unable to load');
+                    preview.innerHTML = `<pre style="white-space:pre-wrap;text-align:left;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;line-height:1.45;padding:12px;border-radius:6px;background:#0f172a;color:#f8fafc">${escapeHtml(txt)}</pre>`;
+                }catch(e){
+                    preview.innerHTML = `<div style="text-align:center;color:var(--muted)">Unable to show preview</div>`;
+                }
+            } else {
+                preview.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fas fa-file" style="font-size:40px"></i><div style="margin-top:8px">Preview not available for this file type.</div></div>`;
             }
-        } else {
-            preview.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fas fa-file" style="font-size:40px"></i><div style="margin-top:8px">Preview not available for this file type.</div></div>`;
         }
 
         modalRoot.style.display = 'flex';
@@ -740,39 +811,22 @@
         document.getElementById('view-list').setAttribute('aria-pressed','true');
     });
 
-    document.getElementById('refresh').addEventListener('click', async ()=>{
-        await loadAll();
-    });
-
-    // Expose helpers to inline onclick
-    window.previewFileByPath = previewFileByPath;
-    window.toggleFavorite = toggleFavorite;
-    window.loadFolder = loadFolder;
-    window.navigate = navigate;
-
     function updateLastUpdated(){
         const el = document.getElementById('last-updated');
         const now = new Date();
         el.textContent = 'Last updated: ' + now.toLocaleString();
     }
 
-    // Polling: auto-refresh from GitHub every POLL_INTERVAL_MS
-    let pollTimer = null;
-    function startPolling(){
-        if(pollTimer) clearInterval(pollTimer);
-        pollTimer = setInterval(async ()=>{
-            try{
-                await loadAll();
-            }catch(e){
-                console.warn('Auto-refresh failed', e);
-            }
-        }, POLL_INTERVAL_MS);
-    }
+    // Expose helpers to inline onclick
+    window.previewFileByPath = previewFileByPath;
+    window.toggleFavorite = toggleFavorite;
+    window.loadFolder = loadFolder;
+    window.navigate = navigate;
+    window.closeModal = closeModal;
 
     // init
     (async function init(){
         await loadAll();
-        startPolling();
     })();
 </script>
 </body>

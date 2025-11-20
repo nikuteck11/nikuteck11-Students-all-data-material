@@ -340,7 +340,6 @@
                 <div class="nav-item" onclick="loadFolder('notes')"><i class="fas fa-sticky-note"></i> Study Notes <span style="margin-left:auto;color:var(--muted)" id="notes-count">—</span></div>
                 <div class="nav-item" onclick="loadFolder('papers')"><i class="fas fa-clipboard-list"></i> Question Papers <span style="margin-left:auto;color:var(--muted)" id="papers-count">—</span></div>
                 <div class="nav-item" onclick="loadFolder('books')"><i class="fas fa-book"></i> Reference Books <span style="margin-left:auto;color:var(--muted)" id="books-count">—</span></div>
-                <div class="nav-item" onclick="loadFolder('notification')"><i class="fas fa-bell"></i> Notifications <span style="margin-left:auto;color:var(--muted)" id="notification-count">—</span></div>
             </div>
 
             <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f7">
@@ -445,10 +444,12 @@
     const GITHUB_USERNAME = "nikuteck11";
     const REPO_NAME = "nikuteck11-Students-all-data-material";
     const BRANCH = "main";
-    const folders = ['notes','papers','books','notification'];
+    const folders = ['notes','papers','books']; // Only main categories
+    const NOTIFICATION_FOLDER = 'notification'; // Separate notification folder
 
     // State
     let allFiles = [];
+    let notificationFiles = [];
     let favorites = new Set(JSON.parse(localStorage.getItem('favorites')||'[]'));
     let selectedView = 'grid';
 
@@ -484,53 +485,10 @@
         console.log("Loading files from GitHub...");
         document.getElementById('files-wrap').innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
         allFiles = [];
-
-        // TEMPORARY DEMO DATA - REMOVE WHEN ACTUAL FILES ARE UPLOADED
-        const demoFiles = [
-            {
-                name: "sample-notes.pdf",
-                path: "notes/sample-notes.pdf",
-                folder: "notes",
-                displayName: "Sample Study Notes",
-                extension: "pdf",
-                category: "pdf",
-                size: 1024000,
-                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/notes/sample-notes.pdf`
-            },
-            {
-                name: "math-paper-2023.pdf",
-                path: "papers/math-paper-2023.pdf", 
-                folder: "papers",
-                displayName: "Math Question Paper 2023",
-                extension: "pdf",
-                category: "pdf",
-                size: 2048000,
-                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/papers/math-paper-2023.pdf`
-            },
-            {
-                name: "physics-book.pdf",
-                path: "books/physics-book.pdf",
-                folder: "books",
-                displayName: "Physics Reference Book",
-                extension: "pdf", 
-                category: "pdf",
-                size: 5120000,
-                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/books/physics-book.pdf`
-            },
-            {
-                name: "important-update.pdf",
-                path: "notification/important-update.pdf",
-                folder: "notification",
-                displayName: "Important Update",
-                extension: "pdf",
-                category: "pdf",
-                size: 512000,
-                download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/notification/important-update.pdf`
-            }
-        ];
+        notificationFiles = [];
 
         try {
-            // Try to load actual files from GitHub
+            // Load main category files
             await Promise.all(folders.map(async folder=>{
                 try{
                     console.log(`Loading folder: ${folder}`);
@@ -566,16 +524,40 @@
                 }
             }));
 
-            // If no actual files found, use demo data
-            if (allFiles.length === 0) {
-                console.log("No actual files found, using demo data");
-                allFiles = demoFiles;
+            // Load notification files separately
+            try {
+                console.log(`Loading notification folder: ${NOTIFICATION_FOLDER}`);
+                const notifRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${NOTIFICATION_FOLDER}?ts=${Date.now()}`, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json',
+                        'User-Agent': 'NikuTeck11-WebApp'
+                    }
+                });
+                
+                if(notifRes.ok) {
+                    const notifData = await notifRes.json();
+                    console.log(`Notification files:`, notifData);
+
+                    notificationFiles = notifData
+                        .filter(f => f.type === 'file' && f.name !== '.gitkeep')
+                        .map(f => ({
+                            ...f,
+                            folder: NOTIFICATION_FOLDER,
+                            displayName: fmtName(f.name),
+                            extension: extOf(f.name),
+                            category: typeCategory(extOf(f.name)),
+                            download_url: f.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${NOTIFICATION_FOLDER}/${encodeURIComponent(f.name)}`,
+                            date: new Date().toLocaleDateString()
+                        }));
+                } else {
+                    console.log(`No notification folder found`);
+                }
+            } catch(notifErr) {
+                console.warn(`Failed to load notifications:`, notifErr);
             }
 
         } catch (error) {
             console.error("Error loading files:", error);
-            // Use demo data as fallback
-            allFiles = demoFiles;
         }
 
         // Update UI
@@ -594,6 +576,7 @@
         updateLastUpdated();
         
         console.log("Total files loaded:", allFiles.length);
+        console.log("Notification files loaded:", notificationFiles.length);
     }
 
     function renderFavorites(){
@@ -615,7 +598,6 @@
 
     function renderNotifications() {
         const notificationsList = document.getElementById('notifications-list');
-        const notificationFiles = allFiles.filter(f => f.folder === 'notification');
         
         if (notificationFiles.length === 0) {
             notificationsList.innerHTML = `
@@ -636,14 +618,14 @@
             notificationItem.className = 'notification-item';
             notificationItem.innerHTML = `
                 <div class="notification-title">${file.displayName}</div>
-                <div class="notification-date">Last updated: ${new Date().toLocaleDateString()}</div>
+                <div class="notification-date">Posted on: ${file.date || new Date().toLocaleDateString()}</div>
                 <div class="notification-content">
-                    <p>This notification contains important information. Click the button below to view the full details.</p>
-                    <button class="btn btn-primary" onclick="previewFileByPath('${file.path}')" style="margin-top: 10px;">
+                    <p>This notification contains important information for students. Click the button below to view full details.</p>
+                    <button class="btn btn-primary" onclick="previewNotification('${file.path}')" style="margin-top: 10px;">
                         <i class="fas fa-eye"></i> View Notification
                     </button>
                     <a href="${file.download_url}" class="btn btn-ghost" download="${file.name}" style="margin-top: 10px;">
-                        <i class="fas fa-download"></i> Download
+                        <i class="fas fa-download"></i> Download PDF
                     </a>
                 </div>
             `;
@@ -751,6 +733,12 @@
         previewFile(file);
     }
 
+    async function previewNotification(path){
+        const file = notificationFiles.find(x=>x.path===path);
+        if(!file) return;
+        previewFile(file);
+    }
+
     async function previewFile(file){
         const modalRoot = document.getElementById('modal-root');
         const preview = document.getElementById('modal-preview');
@@ -776,51 +764,36 @@
 
         preview.innerHTML = '<div style="text-align:center;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Loading preview...</div>';
 
-        // For demo files, show success message
-        if (file.name.includes('sample-') || file.name.includes('demo')) {
-            detailMod.textContent = new Date().toLocaleString();
-            preview.innerHTML = `
-                <div style="text-align:center;color:var(--muted);padding:40px">
-                    <i class="fas fa-file-pdf" style="font-size:60px;color:#ef4444;margin-bottom:20px"></i>
-                    <h3>PDF Preview</h3>
-                    <p>This is a demo file. When you upload actual files, they will preview here.</p>
-                    <a href="${rawUrl}" class="btn btn-primary" target="_blank" style="margin-top:20px">
-                        <i class="fas fa-external-link-alt"></i> Open PDF
-                    </a>
-                </div>
-            `;
-        } else {
-            try{
-                const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.folder}/${file.name}&per_page=1`);
-                if(commits.ok){
-                    const cdata = await commits.json();
-                    if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
-                        const d = new Date(cdata[0].commit.author.date);
-                        detailMod.textContent = d.toLocaleString();
-                    } else detailMod.textContent = 'Unknown';
-                } else {
-                    detailMod.textContent = 'Unknown';
-                }
-            }catch(e){
+        try{
+            const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.folder}/${file.name}&per_page=1`);
+            if(commits.ok){
+                const cdata = await commits.json();
+                if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
+                    const d = new Date(cdata[0].commit.author.date);
+                    detailMod.textContent = d.toLocaleString();
+                } else detailMod.textContent = 'Unknown';
+            } else {
                 detailMod.textContent = 'Unknown';
             }
+        }catch(e){
+            detailMod.textContent = 'Unknown';
+        }
 
-            const ext = (file.extension||'').toLowerCase();
-            if(ext === 'pdf'){
-                const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(rawUrl)}&embedded=true`;
-                preview.innerHTML = `<iframe src="${pdfViewerUrl}" style="width:100%;height:100%;border:0;border-radius:6px"></iframe>`;
-            } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
-                preview.innerHTML = `<img src="${rawUrl}" alt="${file.displayName}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px"/>`;
-            } else if(['txt','md','js','py','json','html','css'].includes(ext)){
-                try{
-                    const txt = await fetch(rawUrl).then(r=>r.ok?r.text():'Unable to load');
-                    preview.innerHTML = `<pre style="white-space:pre-wrap;text-align:left;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;line-height:1.45;padding:12px;border-radius:6px;background:#0f172a;color:#f8fafc">${escapeHtml(txt)}</pre>`;
-                }catch(e){
-                    preview.innerHTML = `<div style="text-align:center;color:var(--muted)">Unable to show preview</div>`;
-                }
-            } else {
-                preview.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fas fa-file" style="font-size:40px"></i><div style="margin-top:8px">Preview not available for this file type.</div></div>`;
+        const ext = (file.extension||'').toLowerCase();
+        if(ext === 'pdf'){
+            const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+            preview.innerHTML = `<iframe src="${pdfViewerUrl}" style="width:100%;height:100%;border:0;border-radius:6px"></iframe>`;
+        } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
+            preview.innerHTML = `<img src="${rawUrl}" alt="${file.displayName}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px"/>`;
+        } else if(['txt','md','js','py','json','html','css'].includes(ext)){
+            try{
+                const txt = await fetch(rawUrl).then(r=>r.ok?r.text():'Unable to load');
+                preview.innerHTML = `<pre style="white-space:pre-wrap;text-align:left;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;line-height:1.45;padding:12px;border-radius:6px;background:#0f172a;color:#f8fafc">${escapeHtml(txt)}</pre>`;
+            }catch(e){
+                preview.innerHTML = `<div style="text-align:center;color:var(--muted)">Unable to show preview</div>`;
             }
+        } else {
+            preview.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fas fa-file" style="font-size:40px"></i><div style="margin-top:8px">Preview not available for this file type.</div></div>`;
         }
 
         modalRoot.style.display = 'flex';
@@ -894,6 +867,7 @@
 
     // Expose helpers to inline onclick
     window.previewFileByPath = previewFileByPath;
+    window.previewNotification = previewNotification;
     window.toggleFavorite = toggleFavorite;
     window.loadFolder = loadFolder;
     window.navigate = navigate;

@@ -249,6 +249,49 @@
             transform:translateY(-3px);
         }
 
+        /* Subject categories */
+        .subject-category {
+            margin-bottom: 24px;
+        }
+        
+        .subject-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: linear-gradient(90deg, #eef2ff, #f0fdfa);
+            border-radius: 10px;
+            border-left: 4px solid #7c3aed;
+        }
+        
+        .subject-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .subject-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #0f172a;
+        }
+        
+        .subject-count {
+            margin-left: auto;
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366f1;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
         @media (max-width:980px){
             .search{width:260px}
             .main-grid{grid-template-columns:1fr}
@@ -274,7 +317,7 @@
         <div class="controls">
             <div class="search">
                 <i class="fas fa-search" style="color:var(--muted)"></i>
-                <input id="search" placeholder="Search files, folders, types..." aria-label="search">
+                <input id="search" placeholder="Search files, subjects, types..." aria-label="search">
                 <button class="btn btn-ghost" id="clear-search" title="Clear" style="display:none"><i class="fas fa-times"></i></button>
             </div>
 
@@ -283,7 +326,6 @@
                 <button class="btn btn-ghost" id="view-list" aria-pressed="false"><i class="fas fa-list"></i></button>
             </div>
 
-            <!-- Upload UI intentionally removed: uploads must be done directly to GitHub folders -->
             <div style="font-size:0.85rem;color:var(--muted);margin-left:8px" id="last-updated">Last updated: —</div>
         </div>
     </header>
@@ -296,7 +338,7 @@
             </div>
             <div class="stat">
                 <span class="value" id="total-cats">0</span>
-                <span class="label">Categories</span>
+                <span class="label">Subjects</span>
             </div>
             <div class="stat">
                 <span class="value" id="active-users">500+</span>
@@ -305,6 +347,18 @@
         </div>
 
         <div class="filters">
+            <select id="filter-subject" title="Filter by subject">
+                <option value="all">All Subjects</option>
+                <!-- Subjects dynamically added -->
+            </select>
+
+            <select id="filter-category" title="Filter by category">
+                <option value="all">All Categories</option>
+                <option value="notes">Study Notes</option>
+                <option value="papers">Question Papers</option>
+                <option value="books">Reference Books</option>
+            </select>
+
             <select id="filter-type" title="Filter by file type">
                 <option value="all">All Types</option>
                 <option value="pdf">PDF</option>
@@ -337,9 +391,15 @@
             <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f7">
             <h3>Categories</h3>
             <div class="nav-list" id="category-list">
-                <div class="nav-item" onclick="loadFolder('notes')"><i class="fas fa-sticky-note"></i> Study Notes <span style="margin-left:auto;color:var(--muted)" id="notes-count">—</span></div>
-                <div class="nav-item" onclick="loadFolder('papers')"><i class="fas fa-clipboard-list"></i> Question Papers <span style="margin-left:auto;color:var(--muted)" id="papers-count">—</span></div>
-                <div class="nav-item" onclick="loadFolder('books')"><i class="fas fa-book"></i> Reference Books <span style="margin-left:auto;color:var(--muted)" id="books-count">—</span></div>
+                <div class="nav-item" onclick="loadCategory('notes')"><i class="fas fa-sticky-note"></i> Study Notes <span style="margin-left:auto;color:var(--muted)" id="notes-count">—</span></div>
+                <div class="nav-item" onclick="loadCategory('papers')"><i class="fas fa-clipboard-list"></i> Question Papers <span style="margin-left:auto;color:var(--muted)" id="papers-count">—</span></div>
+                <div class="nav-item" onclick="loadCategory('books')"><i class="fas fa-book"></i> Reference Books <span style="margin-left:auto;color:var(--muted)" id="books-count">—</span></div>
+            </div>
+
+            <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f7">
+            <h3>Subjects</h3>
+            <div class="nav-list" id="subject-list">
+                <!-- Subjects dynamically added -->
             </div>
 
             <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f7">
@@ -352,6 +412,9 @@
             <div id="dashboard-view">
                 <div class="toolbar">
                     <h2>Dashboard</h2>
+                    <div style="display:flex;gap:10px;align-items:center">
+                        <div id="current-view" style="font-size:0.9rem;color:var(--muted)">Showing all files</div>
+                    </div>
                 </div>
                 
                 <div class="files-wrap" id="files-wrap" aria-live="polite">
@@ -397,14 +460,14 @@
             <div id="empty" style="display:none">
                 <div class="empty-state">
                     <h3>No files found</h3>
-                    <p>Add files to your GitHub repository folders (notes, papers, books) to see them listed here.</p>
+                    <p>Add files to your GitHub repository folders to see them listed here.</p>
                 </div>
             </div>
         </main>
     </div>
 </div>
 
-<!-- Modal (subtle backdrop so list remains visible underneath) -->
+<!-- Modal -->
 <div id="modal-root" class="modal-root" role="dialog" aria-hidden="true">
     <div class="modal-backdrop" onclick="closeModal()"></div>
     <div class="modal-panel" role="document" aria-modal="true" aria-labelledby="modal-title">
@@ -444,14 +507,24 @@
     const GITHUB_USERNAME = "nikuteck11";
     const REPO_NAME = "nikuteck11-Students-all-data-material";
     const BRANCH = "main";
-    const folders = ['notes','papers','books']; // Only main categories
-    const NOTIFICATION_FOLDER = 'notification'; // Separate notification folder
+    const mainCategories = ['notes','papers','books'];
+    const NOTIFICATION_FOLDER = 'notification';
+
+    // Subject configuration with icons and colors
+    const subjects = {
+        'hindi-literature': { name: 'Hindi Literature', icon: '📚', color: '#ef4444' },
+        'political-science': { name: 'Political Science', icon: '🏛️', color: '#10b981' },
+        'history': { name: 'History', icon: '📜', color: '#f59e0b' },
+        'working-of-grame-panchayat': { name: 'Working of Grame Panchayat', icon: '🏘️', color: '#8b5cf6' }
+    };
 
     // State
     let allFiles = [];
     let notificationFiles = [];
     let favorites = new Set(JSON.parse(localStorage.getItem('favorites')||'[]'));
     let selectedView = 'grid';
+    let currentCategory = 'all';
+    let currentSubject = 'all';
 
     const fileTypes = {
         pdf:{icon:'📄',category:'pdf',color:'#ef4444'},
@@ -469,16 +542,74 @@
     function fmtName(name){
         return name.replace(/\.[^/.]+$/,"").replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
     }
+    
     function fmtSize(size){
         if(size===0) return '0 B';
         const k=1024,s=['B','KB','MB','GB']; let i=Math.floor(Math.log(size)/Math.log(k));
         return (size/Math.pow(k,i)).toFixed(2)+' '+s[i];
     }
+    
     function extOf(name){
         return (name.split('.').pop()||'').toLowerCase();
     }
+    
     function typeCategory(ext){
         return (fileTypes[ext] && fileTypes[ext].category) || (['jpg','jpeg','png'].includes(ext)?'image':'other');
+    }
+
+    // Recursive function to load all files from subfolders (ONLY FILES, NO FOLDERS)
+    async function loadFilesFromFolder(category, folderPath = '') {
+        try {
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${category}${folderPath ? '/' + folderPath : ''}?ts=${Date.now()}`;
+            console.log(`Loading from: ${url}`);
+            
+            const res = await fetch(url, {
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'NikuTeck11-WebApp'
+                }
+            });
+            
+            if(!res.ok) {
+                console.log(`No files in ${category}${folderPath}`);
+                return [];
+            }
+            
+            const data = await res.json();
+            let files = [];
+
+            for (const item of data) {
+                if (item.type === 'file' && item.name !== '.gitkeep') {
+                    // Extract subject from folder path (first level folder)
+                    const pathParts = folderPath.split('/');
+                    const subject = pathParts[0] || 'other';
+                    const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
+                    
+                    // ONLY ADD FILES, NO FOLDER INFORMATION
+                    files.push({
+                        ...item,
+                        category: category,
+                        subject: subject,
+                        subjectName: subjectData.name,
+                        displayName: fmtName(item.name),
+                        extension: extOf(item.name),
+                        fileType: typeCategory(extOf(item.name)),
+                        download_url: item.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${category}/${folderPath ? folderPath + '/' : ''}${encodeURIComponent(item.name)}`,
+                        fullPath: `${category}/${folderPath ? folderPath + '/' : ''}${item.name}`
+                    });
+                } else if (item.type === 'dir') {
+                    // Recursively load files from subfolder BUT DON'T SHOW FOLDERS
+                    const subFolderPath = folderPath ? `${folderPath}/${item.name}` : item.name;
+                    const subFiles = await loadFilesFromFolder(category, subFolderPath);
+                    files = files.concat(subFiles);
+                }
+            }
+            
+            return files;
+        } catch(err) {
+            console.warn(`Failed to load ${category}${folderPath}:`, err);
+            return [];
+        }
     }
 
     async function loadAll(){
@@ -488,43 +619,15 @@
         notificationFiles = [];
 
         try {
-            // Load main category files
-            await Promise.all(folders.map(async folder=>{
-                try{
-                    console.log(`Loading folder: ${folder}`);
-                    const res = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${folder}?ts=${Date.now()}`, {
-                        headers: {
-                            'Accept': 'application/vnd.github.v3+json',
-                            'User-Agent': 'NikuTeck11-WebApp'
-                        }
-                    });
-                    
-                    if(!res.ok) {
-                        console.log(`No files in ${folder} or folder doesn't exist`);
-                        return;
-                    }
-                    
-                    const data = await res.json();
-                    console.log(`Files in ${folder}:`, data);
+            // Load main category files recursively
+            for (const category of mainCategories) {
+                console.log(`Loading category: ${category}`);
+                const categoryFiles = await loadFilesFromFolder(category);
+                allFiles = allFiles.concat(categoryFiles);
+                console.log(`Found ${categoryFiles.length} files in ${category}`);
+            }
 
-                    const files = data
-                        .filter(f => f.type === 'file' && f.name !== '.gitkeep')
-                        .map(f => ({
-                            ...f,
-                            folder,
-                            displayName: fmtName(f.name),
-                            extension: extOf(f.name),
-                            category: typeCategory(extOf(f.name)),
-                            download_url: f.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${folder}/${encodeURIComponent(f.name)}`
-                        }));
-                    
-                    allFiles = allFiles.concat(files);
-                } catch(err) {
-                    console.warn(`Failed to load ${folder}:`, err);
-                }
-            }));
-
-            // Load notification files separately
+            // Load notification files
             try {
                 console.log(`Loading notification folder: ${NOTIFICATION_FOLDER}`);
                 const notifRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${NOTIFICATION_FOLDER}?ts=${Date.now()}`, {
@@ -536,21 +639,18 @@
                 
                 if(notifRes.ok) {
                     const notifData = await notifRes.json();
-                    console.log(`Notification files:`, notifData);
-
                     notificationFiles = notifData
                         .filter(f => f.type === 'file' && f.name !== '.gitkeep')
                         .map(f => ({
                             ...f,
-                            folder: NOTIFICATION_FOLDER,
+                            category: 'notification',
                             displayName: fmtName(f.name),
                             extension: extOf(f.name),
-                            category: typeCategory(extOf(f.name)),
+                            fileType: typeCategory(extOf(f.name)),
                             download_url: f.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${NOTIFICATION_FOLDER}/${encodeURIComponent(f.name)}`,
-                            date: new Date().toLocaleDateString()
+                            date: new Date().toLocaleDateString(),
+                            fullPath: `notification/${f.name}`
                         }));
-                } else {
-                    console.log(`No notification folder found`);
                 }
             } catch(notifErr) {
                 console.warn(`Failed to load notifications:`, notifErr);
@@ -561,28 +661,168 @@
         }
 
         // Update UI
-        document.getElementById('total-files').textContent = allFiles.length;
-        document.getElementById('total-cats').textContent = folders.length;
+        updateUI();
         
-        folders.forEach(f=>{
-            const cnt = allFiles.filter(x=>x.folder===f).length;
-            const el = document.getElementById(`${f}-count`);
+        console.log("Total files loaded:", allFiles.length);
+        console.log("Files structure:", allFiles);
+    }
+
+    function updateUI() {
+        document.getElementById('total-files').textContent = allFiles.length;
+        
+        // Count unique subjects
+        const uniqueSubjects = new Set(allFiles.map(f => f.subject).filter(s => s !== 'other'));
+        document.getElementById('total-cats').textContent = uniqueSubjects.size;
+        
+        // Update category counts
+        mainCategories.forEach(category=>{
+            const cnt = allFiles.filter(x=>x.category===category).length;
+            const el = document.getElementById(`${category}-count`);
             if(el) el.textContent = `${cnt} files`;
         });
+
+        // Update subject list in sidebar
+        updateSubjectList();
+        
+        // Update filter dropdowns
+        updateSubjectFilter();
+        updateCurrentView();
 
         renderFiles(allFiles);
         renderFavorites();
         renderNotifications();
         updateLastUpdated();
+    }
+
+    function updateSubjectList() {
+        const subjectList = document.getElementById('subject-list');
+        subjectList.innerHTML = '';
+
+        // Count files per subject
+        const subjectCounts = {};
+        allFiles.forEach(file => {
+            if (file.subject !== 'other') {
+                subjectCounts[file.subject] = (subjectCounts[file.subject] || 0) + 1;
+            }
+        });
+
+        // Create subject items
+        Object.entries(subjects).forEach(([subjectKey, subjectData]) => {
+            const count = subjectCounts[subjectKey] || 0;
+            if (count > 0) {
+                const item = document.createElement('div');
+                item.className = 'nav-item';
+                item.onclick = () => loadSubject(subjectKey);
+                item.innerHTML = `
+                    <div style="width:20px;text-align:center">${subjectData.icon}</div>
+                    <div>${subjectData.name}</div>
+                    <span style="margin-left:auto;color:var(--muted)">${count}</span>
+                `;
+                subjectList.appendChild(item);
+            }
+        });
+
+        if (Object.keys(subjectCounts).length === 0) {
+            subjectList.innerHTML = '<div style="font-size:0.85rem;color:var(--muted);padding:8px">No subjects found</div>';
+        }
+    }
+
+    function updateSubjectFilter() {
+        const subjectFilter = document.getElementById('filter-subject');
+        subjectFilter.innerHTML = '<option value="all">All Subjects</option>';
+
+        Object.entries(subjects).forEach(([subjectKey, subjectData]) => {
+            const count = allFiles.filter(f => f.subject === subjectKey).length;
+            if (count > 0) {
+                const option = document.createElement('option');
+                option.value = subjectKey;
+                option.textContent = `${subjectData.name} (${count})`;
+                subjectFilter.appendChild(option);
+            }
+        });
+    }
+
+    function updateCurrentView() {
+        const currentView = document.getElementById('current-view');
+        if (currentSubject !== 'all' && currentCategory !== 'all') {
+            const subjectName = subjects[currentSubject]?.name || currentSubject;
+            const categoryName = currentCategory === 'notes' ? 'Study Notes' : 
+                                currentCategory === 'papers' ? 'Question Papers' : 
+                                'Reference Books';
+            currentView.textContent = `Showing ${subjectName} - ${categoryName}`;
+        } else if (currentSubject !== 'all') {
+            const subjectName = subjects[currentSubject]?.name || currentSubject;
+            currentView.textContent = `Showing ${subjectName}`;
+        } else if (currentCategory !== 'all') {
+            const categoryName = currentCategory === 'notes' ? 'Study Notes' : 
+                                currentCategory === 'papers' ? 'Question Papers' : 
+                                'Reference Books';
+            currentView.textContent = `Showing ${categoryName}`;
+        } else {
+            currentView.textContent = 'Showing all files';
+        }
+    }
+
+    function loadSubject(subject) {
+        navigate('all-files');
+        currentSubject = subject;
+        currentCategory = 'all';
+        const files = allFiles.filter(f => f.subject === subject);
         
-        console.log("Total files loaded:", allFiles.length);
-        console.log("Notification files loaded:", notificationFiles.length);
+        updateCurrentView();
+        renderFiles(files);
+    }
+
+    function loadCategory(category) {
+        navigate('all-files');
+        currentCategory = category;
+        currentSubject = 'all';
+        const files = allFiles.filter(f => f.category === category);
+        
+        updateCurrentView();
+        renderFiles(files);
+    }
+
+    function createFileCard(file) {
+        const card = document.createElement('div');
+        card.className = 'file-card';
+        
+        const ft = fileTypes[file.extension] || {icon:'📁',color:'#58a6ff'};
+        const categoryName = file.category === 'notes' ? 'Study Notes' : 
+                           file.category === 'papers' ? 'Question Papers' : 
+                           'Reference Books';
+
+        card.innerHTML = `
+            <div class="file-head" style="width:100%">
+                <div class="file-icon" style="background:${ft.color}">
+                    ${ft.icon}
+                </div>
+                <div class="file-meta" style="flex:1">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div class="file-title">${file.displayName}</div>
+                        ${favorites.has(file.fullPath) ? '<span class="pill" style="background:rgba(16,185,129,0.12);color:var(--success)">★ Favorite</span>' : ''}
+                    </div>
+                    <div class="file-sub">${categoryName} · ${file.extension.toUpperCase()} · ${file.size ? fmtSize(file.size) : '—'}</div>
+                    <div class="file-sub" style="color:#6366f1;font-weight:600">${file.subjectName}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-ghost" title="Preview" onclick="previewFileByPath('${file.fullPath}')"><i class="fas fa-eye"></i></button>
+                        <a class="btn btn-ghost" title="Open raw" href="${file.download_url}" target="_blank"><i class="fas fa-external-link-alt"></i></a>
+                        <button class="btn btn-ghost" title="Favorite" onclick="toggleFavorite('${file.fullPath}', event)"><i class="fas fa-star"></i></button>
+                    </div>
+                    <a class="pill" href="${file.download_url}" download="${file.name}">Download</a>
+                </div>
+            </div>
+        `;
+
+        return card;
     }
 
     function renderFavorites(){
         const wrap = document.getElementById('favorites-list');
         wrap.innerHTML = '';
-        const favs = allFiles.filter(f=>favorites.has(f.path));
+        const favs = allFiles.filter(f=>favorites.has(f.fullPath));
         if(favs.length===0){
             wrap.innerHTML = '<div style="font-size:0.85rem;color:var(--muted)">No favorites yet</div>';
             return;
@@ -590,8 +830,8 @@
         favs.slice(0,6).forEach(f=>{
             const el = document.createElement('div');
             el.className='nav-item';
-            el.innerHTML = `<i class="fas fa-file-alt"></i><div style="margin-left:8px">${f.displayName}</div><div style="margin-left:auto;color:var(--muted);font-weight:700">${f.folder}</div>`;
-            el.onclick = ()=>previewFileByPath(f.path);
+            el.innerHTML = `<i class="fas fa-file-alt"></i><div style="margin-left:8px">${f.displayName}</div><div style="margin-left:auto;color:var(--muted);font-weight:700">${f.category}</div>`;
+            el.onclick = ()=>previewFileByPath(f.fullPath);
             wrap.appendChild(el);
         });
     }
@@ -621,7 +861,7 @@
                 <div class="notification-date">Posted on: ${file.date || new Date().toLocaleDateString()}</div>
                 <div class="notification-content">
                     <p>This notification contains important information for students. Click the button below to view full details.</p>
-                    <button class="btn btn-primary" onclick="previewNotification('${file.path}')" style="margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="previewNotification('${file.fullPath}')" style="margin-top: 10px;">
                         <i class="fas fa-eye"></i> View Notification
                     </button>
                     <a href="${file.download_url}" class="btn btn-ghost" download="${file.name}" style="margin-top: 10px;">
@@ -646,47 +886,57 @@
         wrap.innerHTML = '';
         const viewList = selectedView==='list';
 
-        files.forEach(f=>{
-            const card = document.createElement('div');
-            card.className = 'file-card';
-            if(viewList){
-                card.style.gridColumn = '1/-1';
-                card.style.display = 'flex';
+        // Group files by subject for better organization
+        const filesBySubject = {};
+        files.forEach(file => {
+            if (!filesBySubject[file.subject]) {
+                filesBySubject[file.subject] = [];
             }
+            filesBySubject[file.subject].push(file);
+        });
 
-            const ft = fileTypes[f.extension] || {icon:'📁',color:'#58a6ff'};
+        Object.entries(filesBySubject).forEach(([subject, subjectFiles]) => {
+            if (subjectFiles.length > 0) {
+                const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
+                
+                const subjectSection = document.createElement('div');
+                subjectSection.className = 'subject-category';
+                
+                const subjectHeader = document.createElement('div');
+                subjectHeader.className = 'subject-header';
+                subjectHeader.innerHTML = `
+                    <div class="subject-icon" style="background:${subjectData.color}">
+                        ${subjectData.icon}
+                    </div>
+                    <div class="subject-title">${subjectData.name}</div>
+                    <div class="subject-count">${subjectFiles.length} files</div>
+                `;
+                subjectSection.appendChild(subjectHeader);
 
-            card.innerHTML = `
-                <div class="file-head" style="width:100%">
-                    <div class="file-icon" style="background:${ft.color}">
-                        ${ft.icon}
-                    </div>
-                    <div class="file-meta" style="flex:1">
-                        <div style="display:flex;align-items:center;gap:8px">
-                            <div class="file-title">${f.displayName}</div>
-                            ${favorites.has(f.path) ? '<span class="pill" style="background:rgba(16,185,129,0.12);color:var(--success)">★ Favorite</span>' : ''}
-                        </div>
-                        <div class="file-sub">${f.folder} · ${f.extension.toUpperCase()} · ${f.size ? fmtSize(f.size) : '—'}</div>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-                        <div style="display:flex;gap:6px">
-                            <button class="btn btn-ghost" title="Preview" onclick="previewFileByPath('${f.path}')"><i class="fas fa-eye"></i></button>
-                            <a class="btn btn-ghost" title="Open raw" href="${f.download_url}" target="_blank"><i class="fas fa-external-link-alt"></i></a>
-                            <button class="btn btn-ghost" title="Favorite" onclick="toggleFavorite('${f.path}', event)"><i class="fas fa-star"></i></button>
-                        </div>
-                        <a class="pill" href="${f.download_url}" download="${f.name}">Download</a>
-                    </div>
-                </div>
-            `;
-
-            wrap.appendChild(card);
+                const filesGrid = document.createElement('div');
+                filesGrid.className = 'files-wrap';
+                filesGrid.style.gridTemplateColumns = viewList ? '1fr' : 'repeat(auto-fill,minmax(240px,1fr))';
+                filesGrid.style.gap = '14px';
+                
+                subjectFiles.forEach(f => {
+                    const card = createFileCard(f);
+                    if (viewList) {
+                        card.style.gridColumn = '1/-1';
+                        card.style.display = 'flex';
+                    }
+                    filesGrid.appendChild(card);
+                });
+                
+                subjectSection.appendChild(filesGrid);
+                wrap.appendChild(subjectSection);
+            }
         });
     }
 
-    function toggleFavorite(path, ev){
+    function toggleFavorite(fullPath, ev){
         ev.stopPropagation();
-        if(favorites.has(path)) favorites.delete(path);
-        else favorites.add(path);
+        if(favorites.has(fullPath)) favorites.delete(fullPath);
+        else favorites.add(fullPath);
         localStorage.setItem('favorites', JSON.stringify(Array.from(favorites)));
         renderFavorites();
         renderFiles(filteredAndSorted());
@@ -703,14 +953,23 @@
         
         if(section==='dashboard'){
             document.getElementById('dashboard-view').style.display = 'block';
+            currentCategory = 'all';
+            currentSubject = 'all';
+            updateCurrentView();
             renderFiles(allFiles);
         }
         if(section==='all-files'){
             document.getElementById('dashboard-view').style.display = 'block';
+            currentCategory = 'all';
+            currentSubject = 'all';
+            updateCurrentView();
             renderFiles(allFiles);
         }
         if(section==='recent'){
             document.getElementById('dashboard-view').style.display = 'block';
+            currentCategory = 'all';
+            currentSubject = 'all';
+            updateCurrentView();
             renderFiles(allFiles);
         }
         if(section==='notification'){
@@ -721,20 +980,14 @@
         }
     }
 
-    async function loadFolder(folder){
-        navigate('all-files');
-        const files = allFiles.filter(f=>f.folder===folder);
-        renderFiles(files);
-    }
-
-    async function previewFileByPath(path){
-        const file = allFiles.find(x=>x.path===path);
+    async function previewFileByPath(fullPath){
+        const file = allFiles.find(x=>x.fullPath===fullPath) || notificationFiles.find(x=>x.fullPath===fullPath);
         if(!file) return;
         previewFile(file);
     }
 
-    async function previewNotification(path){
-        const file = notificationFiles.find(x=>x.path===path);
+    async function previewNotification(fullPath){
+        const file = notificationFiles.find(x=>x.fullPath===fullPath);
         if(!file) return;
         previewFile(file);
     }
@@ -754,7 +1007,10 @@
         const rawUrl = file.download_url;
 
         title.textContent = file.displayName;
-        sub.textContent = `${file.name} • ${file.folder}`;
+        const categoryName = file.category === 'notes' ? 'Study Notes' : 
+                           file.category === 'papers' ? 'Question Papers' : 
+                           file.category === 'books' ? 'Reference Books' : 'Notification';
+        sub.textContent = `${file.name} • ${categoryName} • ${file.subjectName}`;
         detailName.textContent = file.name;
         detailType.textContent = (file.extension || 'file').toUpperCase();
         detailSize.textContent = file.size ? fmtSize(file.size) : 'Unknown';
@@ -765,7 +1021,7 @@
         preview.innerHTML = '<div style="text-align:center;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Loading preview...</div>';
 
         try{
-            const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.folder}/${file.name}&per_page=1`);
+            const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.fullPath}&per_page=1`);
             if(commits.ok){
                 const cdata = await commits.json();
                 if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
@@ -813,18 +1069,32 @@
 
     function filteredAndSorted(){
         const q = (document.getElementById('search').value||'').trim().toLowerCase();
+        const subject = document.getElementById('filter-subject').value;
+        const category = document.getElementById('filter-category').value;
         const type = document.getElementById('filter-type').value;
         const sort = document.getElementById('sort-by').value;
 
         let arr = allFiles.slice();
 
         if(q.length>0){
-            arr = arr.filter(f => f.displayName.toLowerCase().includes(q) || f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q));
+            arr = arr.filter(f => 
+                f.displayName.toLowerCase().includes(q) || 
+                f.name.toLowerCase().includes(q) || 
+                f.subjectName.toLowerCase().includes(q)
+            );
+        }
+
+        if(subject !== 'all'){
+            arr = arr.filter(f => f.subject === subject);
+        }
+
+        if(category !== 'all'){
+            arr = arr.filter(f => f.category === category);
         }
 
         if(type !== 'all'){
-            if(type === 'image') arr = arr.filter(f=>['image'].includes(f.category));
-            else arr = arr.filter(f=>f.extension===type || f.category===type);
+            if(type === 'image') arr = arr.filter(f=>['image'].includes(f.fileType));
+            else arr = arr.filter(f=>f.extension===type || f.fileType===type);
         }
 
         if(sort === 'name-asc') arr.sort((a,b)=>a.displayName.localeCompare(b.displayName));
@@ -846,6 +1116,16 @@
         renderFiles(filteredAndSorted());
     });
 
+    document.getElementById('filter-subject').addEventListener('change', ()=>{
+        currentSubject = document.getElementById('filter-subject').value;
+        updateCurrentView();
+        renderFiles(filteredAndSorted());
+    });
+    document.getElementById('filter-category').addEventListener('change', ()=>{
+        currentCategory = document.getElementById('filter-category').value;
+        updateCurrentView();
+        renderFiles(filteredAndSorted());
+    });
     document.getElementById('filter-type').addEventListener('change', ()=>renderFiles(filteredAndSorted()));
     document.getElementById('sort-by').addEventListener('change', ()=>renderFiles(filteredAndSorted()));
     document.getElementById('view-grid').addEventListener('click', ()=>{
@@ -869,7 +1149,8 @@
     window.previewFileByPath = previewFileByPath;
     window.previewNotification = previewNotification;
     window.toggleFavorite = toggleFavorite;
-    window.loadFolder = loadFolder;
+    window.loadCategory = loadCategory;
+    window.loadSubject = loadSubject;
     window.navigate = navigate;
     window.closeModal = closeModal;
 

@@ -558,60 +558,59 @@
     }
 
     // Recursive function to load all files from subfolders (ONLY FILES, NO FOLDERS)
-    async function loadFilesFromFolder(category, folderPath = '') {
-        try {
-            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${category}${folderPath ? '/' + folderPath : ''}?ts=${Date.now()}`;
-            console.log(`Loading from: ${url}`);
-            
-            const res = await fetch(url, {
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'NikuTeck11-WebApp'
-                }
-            });
-            
-            if(!res.ok) {
-                console.log(`No files in ${category}${folderPath}`);
-                return [];
+async function loadFilesFromFolder(category, folderPath = '') {
+    try {
+        const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${category}${folderPath ? '/' + folderPath : ''}?ts=${Date.now()}`;
+        console.log(`Loading from: ${url}`);
+        
+        const res = await fetch(url, {
+            headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'NikuTeck11-WebApp'
             }
-            
-            const data = await res.json();
-            let files = [];
-
-            for (const item of data) {
-                if (item.type === 'file' && item.name !== '.gitkeep') {
-                    // Extract subject from folder path (first level folder)
-                    const pathParts = folderPath.split('/');
-                    const subject = pathParts[0] || 'other';
-                    const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
-                    
-                    // ONLY ADD FILES, NO FOLDER INFORMATION
-                    files.push({
-                        ...item,
-                        category: category,
-                        subject: subject,
-                        subjectName: subjectData.name,
-                        displayName: fmtName(item.name),
-                        extension: extOf(item.name),
-                        fileType: typeCategory(extOf(item.name)),
-                        download_url: item.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${category}/${folderPath ? folderPath + '/' : ''}${encodeURIComponent(item.name)}`,
-                        fullPath: `${category}/${folderPath ? folderPath + '/' : ''}${item.name}`
-                    });
-                } else if (item.type === 'dir') {
-                    // Recursively load files from subfolder BUT DON'T SHOW FOLDERS
-                    const subFolderPath = folderPath ? `${folderPath}/${item.name}` : item.name;
-                    const subFiles = await loadFilesFromFolder(category, subFolderPath);
-                    files = files.concat(subFiles);
-                }
-            }
-            
-            return files;
-        } catch(err) {
-            console.warn(`Failed to load ${category}${folderPath}:`, err);
+        });
+        
+        if(!res.ok) {
+            console.log(`No files in ${category}${folderPath}`);
             return [];
         }
-    }
+        
+        const data = await res.json();
+        let files = [];
 
+        for (const item of data) {
+            if (item.type === 'file' && item.name !== '.gitkeep') {
+                // Extract subject from folder path (first level folder)
+                const pathParts = folderPath.split('/');
+                const subject = pathParts[0] || 'other';
+                const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
+                
+                // ONLY ADD FILES, NO FOLDER INFORMATION
+                files.push({
+                    ...item,
+                    category: category,
+                    subject: subject,
+                    subjectName: subjectData.name,
+                    displayName: fmtName(item.name),
+                    extension: extOf(item.name),
+                    fileType: typeCategory(extOf(item.name)),
+                    download_url: item.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${category}/${folderPath ? folderPath + '/' : ''}${encodeURIComponent(item.name)}`,
+                    fullPath: `${category}/${folderPath ? folderPath + '/' : ''}${item.name}`
+                });
+            } else if (item.type === 'dir') {
+                // Recursively load files from subfolder BUT DON'T SHOW FOLDERS AS SEPARATE ITEMS
+                const subFolderPath = folderPath ? `${folderPath}/${item.name}` : item.name;
+                const subFiles = await loadFilesFromFolder(category, subFolderPath);
+                files = files.concat(subFiles);
+            }
+        }
+        
+        return files;
+    } catch(err) {
+        console.warn(`Failed to load ${category}${folderPath}:`, err);
+        return [];
+    }
+}
     async function loadAll(){
         console.log("Loading files from GitHub...");
         document.getElementById('files-wrap').innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';

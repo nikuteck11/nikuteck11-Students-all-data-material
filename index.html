@@ -557,113 +557,122 @@
         return (fileTypes[ext] && fileTypes[ext].category) || (['jpg','jpeg','png'].includes(ext)?'image':'other');
     }
 
-    // Recursive function to load all files from subfolders (ONLY FILES, NO FOLDERS)
-async function loadFilesFromFolder(category, folderPath = '') {
-    try {
-        const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${category}${folderPath ? '/' + folderPath : ''}?ts=${Date.now()}`;
-        console.log(`Loading from: ${url}`);
-        
-        const res = await fetch(url, {
-            headers: {
-                'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'NikuTeck11-WebApp'
-            }
-        });
-        
-        if(!res.ok) {
-            console.log(`No files in ${category}${folderPath}`);
-            return [];
-        }
-        
-        const data = await res.json();
-        let files = [];
+    // MANUALLY DEFINE FILES - NO API CALLS
+    const manualFiles = [
+        // Add your actual file names here
+        // Example: 
+        // { name: "Best Study TimeTable 2025.pdf", category: "papers", subject: "hindi-literature" },
+    ];
 
-        for (const item of data) {
-            if (item.type === 'file' && item.name !== '.gitkeep') {
-                // Extract subject from folder path (first level folder)
-                const pathParts = folderPath.split('/');
-                const subject = pathParts[0] || 'other';
-                const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
-                
-                // ONLY ADD FILES, NO FOLDER INFORMATION
-                files.push({
-                    ...item,
-                    category: category,
-                    subject: subject,
-                    subjectName: subjectData.name,
-                    displayName: fmtName(item.name),
-                    extension: extOf(item.name),
-                    fileType: typeCategory(extOf(item.name)),
-                    download_url: item.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${category}/${folderPath ? folderPath + '/' : ''}${encodeURIComponent(item.name)}`,
-                    fullPath: `${category}/${folderPath ? folderPath + '/' : ''}${item.name}`
-                });
-            } else if (item.type === 'dir') {
-                // Recursively load files from subfolder BUT DON'T SHOW FOLDERS AS SEPARATE ITEMS
-                const subFolderPath = folderPath ? `${folderPath}/${item.name}` : item.name;
-                const subFiles = await loadFilesFromFolder(category, subFolderPath);
-                files = files.concat(subFiles);
-            }
-        }
-        
-        return files;
-    } catch(err) {
-        console.warn(`Failed to load ${category}${folderPath}:`, err);
-        return [];
-    }
-}
     async function loadAll(){
-        console.log("Loading files from GitHub...");
+        console.log("Loading files manually...");
         document.getElementById('files-wrap').innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
         allFiles = [];
         notificationFiles = [];
 
         try {
-            // Load main category files recursively
+            // Try to load from GitHub API first
             for (const category of mainCategories) {
-                console.log(`Loading category: ${category}`);
-                const categoryFiles = await loadFilesFromFolder(category);
-                allFiles = allFiles.concat(categoryFiles);
-                console.log(`Found ${categoryFiles.length} files in ${category}`);
+                try {
+                    const categoryFiles = await loadFilesFromFolder(category);
+                    allFiles = allFiles.concat(categoryFiles);
+                } catch (error) {
+                    console.log(`Failed to load ${category}:`, error);
+                }
             }
 
-            // Load notification files
-            try {
-                console.log(`Loading notification folder: ${NOTIFICATION_FOLDER}`);
-                const notifRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${NOTIFICATION_FOLDER}?ts=${Date.now()}`, {
-                    headers: {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'User-Agent': 'NikuTeck11-WebApp'
-                    }
+            // If no files loaded, use manual files
+            if (allFiles.length === 0 && manualFiles.length > 0) {
+                allFiles = manualFiles.map(file => {
+                    const subjectData = subjects[file.subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
+                    return {
+                        name: file.name,
+                        category: file.category,
+                        subject: file.subject,
+                        subjectName: subjectData.name,
+                        displayName: fmtName(file.name),
+                        extension: extOf(file.name),
+                        fileType: typeCategory(extOf(file.name)),
+                        download_url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${file.category}/${file.subject}/${encodeURIComponent(file.name)}`,
+                        fullPath: `${file.category}/${file.subject}/${file.name}`,
+                        size: 0 // Default size
+                    };
                 });
-                
-                if(notifRes.ok) {
-                    const notifData = await notifRes.json();
-                    notificationFiles = notifData
-                        .filter(f => f.type === 'file' && f.name !== '.gitkeep')
-                        .map(f => ({
-                            ...f,
-                            category: 'notification',
-                            displayName: fmtName(f.name),
-                            extension: extOf(f.name),
-                            fileType: typeCategory(extOf(f.name)),
-                            download_url: f.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${NOTIFICATION_FOLDER}/${encodeURIComponent(f.name)}`,
-                            date: new Date().toLocaleDateString(),
-                            fullPath: `notification/${f.name}`
-                        }));
-                }
-            } catch(notifErr) {
-                console.warn(`Failed to load notifications:`, notifErr);
             }
 
         } catch (error) {
             console.error("Error loading files:", error);
         }
 
+        // Filter out .gitkeep and hidden files
+        allFiles = allFiles.filter(file => 
+            file.name !== '.gitkeep' && 
+            !file.name.startsWith('.') &&
+            file.name.toLowerCase() !== 'gitkeep'
+        );
+
         // Update UI
         updateUI();
         
         console.log("Total files loaded:", allFiles.length);
         console.log("Files structure:", allFiles);
+    }
+
+    // Updated loadFilesFromFolder function with better filtering
+    async function loadFilesFromFolder(category, folderPath = '') {
+        try {
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${category}${folderPath ? '/' + folderPath : ''}?ts=${Date.now()}`;
+            console.log(`Loading from: ${url}`);
+            
+            const res = await fetch(url, {
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'NikuTeck11-WebApp'
+                }
+            });
+            
+            if(!res.ok) {
+                return [];
+            }
+            
+            const data = await res.json();
+            let files = [];
+
+            for (const item of data) {
+                // STRICT FILTERING - ONLY ACTUAL USER FILES
+                if (item.type === 'file' && 
+                    item.name !== '.gitkeep' && 
+                    !item.name.startsWith('.') &&
+                    item.name.toLowerCase() !== 'gitkeep' &&
+                    !item.name.includes('README') &&
+                    item.size > 100) { // Minimum file size to exclude empty files
+                    
+                    const pathParts = folderPath.split('/');
+                    const subject = pathParts[0] || 'other';
+                    const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
+                    
+                    files.push({
+                        ...item,
+                        category: category,
+                        subject: subject,
+                        subjectName: subjectData.name,
+                        displayName: fmtName(item.name),
+                        extension: extOf(item.name),
+                        fileType: typeCategory(extOf(item.name)),
+                        download_url: item.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${category}/${folderPath ? folderPath + '/' : ''}${encodeURIComponent(item.name)}`,
+                        fullPath: `${category}/${folderPath ? folderPath + '/' : ''}${item.name}`
+                    });
+                } else if (item.type === 'dir' && !item.name.startsWith('.')) {
+                    const subFolderPath = folderPath ? `${folderPath}/${item.name}` : item.name;
+                    const subFiles = await loadFilesFromFolder(category, subFolderPath);
+                    files = files.concat(subFiles);
+                }
+            }
+            
+            return files;
+        } catch(err) {
+            return [];
+        }
     }
 
     function updateUI() {
@@ -689,7 +698,6 @@ async function loadFilesFromFolder(category, folderPath = '') {
 
         renderFiles(allFiles);
         renderFavorites();
-        renderNotifications();
         updateLastUpdated();
     }
 
@@ -705,7 +713,7 @@ async function loadFilesFromFolder(category, folderPath = '') {
             }
         });
 
-        // Create subject items
+        // Create subject items ONLY for subjects that have files
         Object.entries(subjects).forEach(([subjectKey, subjectData]) => {
             const count = subjectCounts[subjectKey] || 0;
             if (count > 0) {
@@ -730,8 +738,17 @@ async function loadFilesFromFolder(category, folderPath = '') {
         const subjectFilter = document.getElementById('filter-subject');
         subjectFilter.innerHTML = '<option value="all">All Subjects</option>';
 
+        // Count files per subject
+        const subjectCounts = {};
+        allFiles.forEach(file => {
+            if (file.subject !== 'other') {
+                subjectCounts[file.subject] = (subjectCounts[file.subject] || 0) + 1;
+            }
+        });
+
+        // Add subjects to filter ONLY if they have files
         Object.entries(subjects).forEach(([subjectKey, subjectData]) => {
-            const count = allFiles.filter(f => f.subject === subjectKey).length;
+            const count = subjectCounts[subjectKey] || 0;
             if (count > 0) {
                 const option = document.createElement('option');
                 option.value = subjectKey;
@@ -835,47 +852,11 @@ async function loadFilesFromFolder(category, folderPath = '') {
         });
     }
 
-    function renderNotifications() {
-        const notificationsList = document.getElementById('notifications-list');
-        
-        if (notificationFiles.length === 0) {
-            notificationsList.innerHTML = `
-                <div class="notification-item">
-                    <div class="notification-title">No Notifications Yet</div>
-                    <div class="notification-content">
-                        Add PDF files to the 'notification' folder in your GitHub repository to display notifications here.
-                    </div>
-                </div>
-            `;
-            return;
-        }
-
-        notificationsList.innerHTML = '';
-        
-        notificationFiles.forEach(file => {
-            const notificationItem = document.createElement('div');
-            notificationItem.className = 'notification-item';
-            notificationItem.innerHTML = `
-                <div class="notification-title">${file.displayName}</div>
-                <div class="notification-date">Posted on: ${file.date || new Date().toLocaleDateString()}</div>
-                <div class="notification-content">
-                    <p>This notification contains important information for students. Click the button below to view full details.</p>
-                    <button class="btn btn-primary" onclick="previewNotification('${file.fullPath}')" style="margin-top: 10px;">
-                        <i class="fas fa-eye"></i> View Notification
-                    </button>
-                    <a href="${file.download_url}" class="btn btn-ghost" download="${file.name}" style="margin-top: 10px;">
-                        <i class="fas fa-download"></i> Download PDF
-                    </a>
-                </div>
-            `;
-            notificationsList.appendChild(notificationItem);
-        });
-    }
-
     function renderFiles(files){
         const wrap = document.getElementById('files-wrap');
         const empty = document.getElementById('empty');
-        if(!files || files.length===0){
+        
+        if(!files || files.length === 0){
             wrap.innerHTML = '';
             empty.style.display = 'block';
             return;
@@ -883,7 +864,7 @@ async function loadFilesFromFolder(category, folderPath = '') {
 
         empty.style.display = 'none';
         wrap.innerHTML = '';
-        const viewList = selectedView==='list';
+        const viewList = selectedView === 'list';
 
         // Group files by subject for better organization
         const filesBySubject = {};
@@ -894,6 +875,7 @@ async function loadFilesFromFolder(category, folderPath = '') {
             filesBySubject[file.subject].push(file);
         });
 
+        // ONLY CREATE SECTIONS FOR SUBJECTS THAT HAVE FILES
         Object.entries(filesBySubject).forEach(([subject, subjectFiles]) => {
             if (subjectFiles.length > 0) {
                 const subjectData = subjects[subject] || { name: 'Other', icon: '📁', color: '#6b7280' };
@@ -930,6 +912,11 @@ async function loadFilesFromFolder(category, folderPath = '') {
                 wrap.appendChild(subjectSection);
             }
         });
+
+        if (wrap.children.length === 0) {
+            wrap.innerHTML = '';
+            empty.style.display = 'block';
+        }
     }
 
     function toggleFavorite(fullPath, ev){
@@ -980,13 +967,7 @@ async function loadFilesFromFolder(category, folderPath = '') {
     }
 
     async function previewFileByPath(fullPath){
-        const file = allFiles.find(x=>x.fullPath===fullPath) || notificationFiles.find(x=>x.fullPath===fullPath);
-        if(!file) return;
-        previewFile(file);
-    }
-
-    async function previewNotification(fullPath){
-        const file = notificationFiles.find(x=>x.fullPath===fullPath);
+        const file = allFiles.find(x=>x.fullPath===fullPath);
         if(!file) return;
         previewFile(file);
     }
@@ -1008,31 +989,16 @@ async function loadFilesFromFolder(category, folderPath = '') {
         title.textContent = file.displayName;
         const categoryName = file.category === 'notes' ? 'Study Notes' : 
                            file.category === 'papers' ? 'Question Papers' : 
-                           file.category === 'books' ? 'Reference Books' : 'Notification';
+                           'Reference Books';
         sub.textContent = `${file.name} • ${categoryName} • ${file.subjectName}`;
         detailName.textContent = file.name;
         detailType.textContent = (file.extension || 'file').toUpperCase();
         detailSize.textContent = file.size ? fmtSize(file.size) : 'Unknown';
-        detailMod.textContent = 'Loading...';
+        detailMod.textContent = 'Unknown';
         modalOpenRaw.href = rawUrl;
         modalDownload.onclick = ()=> window.open(rawUrl, '_blank');
 
         preview.innerHTML = '<div style="text-align:center;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Loading preview...</div>';
-
-        try{
-            const commits = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/commits?path=${file.fullPath}&per_page=1`);
-            if(commits.ok){
-                const cdata = await commits.json();
-                if(cdata && cdata[0] && cdata[0].commit && cdata[0].commit.author){
-                    const d = new Date(cdata[0].commit.author.date);
-                    detailMod.textContent = d.toLocaleString();
-                } else detailMod.textContent = 'Unknown';
-            } else {
-                detailMod.textContent = 'Unknown';
-            }
-        }catch(e){
-            detailMod.textContent = 'Unknown';
-        }
 
         const ext = (file.extension||'').toLowerCase();
         if(ext === 'pdf'){
@@ -1040,13 +1006,6 @@ async function loadFilesFromFolder(category, folderPath = '') {
             preview.innerHTML = `<iframe src="${pdfViewerUrl}" style="width:100%;height:100%;border:0;border-radius:6px"></iframe>`;
         } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
             preview.innerHTML = `<img src="${rawUrl}" alt="${file.displayName}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px"/>`;
-        } else if(['txt','md','js','py','json','html','css'].includes(ext)){
-            try{
-                const txt = await fetch(rawUrl).then(r=>r.ok?r.text():'Unable to load');
-                preview.innerHTML = `<pre style="white-space:pre-wrap;text-align:left;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;line-height:1.45;padding:12px;border-radius:6px;background:#0f172a;color:#f8fafc">${escapeHtml(txt)}</pre>`;
-            }catch(e){
-                preview.innerHTML = `<div style="text-align:center;color:var(--muted)">Unable to show preview</div>`;
-            }
         } else {
             preview.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fas fa-file" style="font-size:40px"></i><div style="margin-top:8px">Preview not available for this file type.</div></div>`;
         }
@@ -1146,7 +1105,6 @@ async function loadFilesFromFolder(category, folderPath = '') {
 
     // Expose helpers to inline onclick
     window.previewFileByPath = previewFileByPath;
-    window.previewNotification = previewNotification;
     window.toggleFavorite = toggleFavorite;
     window.loadCategory = loadCategory;
     window.loadSubject = loadSubject;

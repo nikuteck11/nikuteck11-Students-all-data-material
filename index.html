@@ -19,8 +19,8 @@
             --success: #10b981;
         }
 
-        *{box-sizing:border-box}
-        html,body{height:100%; margin:0; padding:0;}
+        *{box-sizing:border-box; margin:0; padding:0;}
+        html,body{height:100%;}
         body{
             font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
             background:var(--bg);
@@ -32,9 +32,9 @@
 
         .app {
             max-width:1200px;
-            margin:28px auto;
+            margin:0 auto;
             padding:20px;
-            height: calc(100vh - 56px);
+            height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -93,19 +93,23 @@
             padding:8px 10px;border-radius:10px;border:1px solid #e6eef8;background:white;font-weight:600;
         }
 
-        .main-grid{
-            display:grid;grid-template-columns:280px 1fr;gap:18px;
+        .main-content-wrapper {
+            display: flex;
             flex: 1;
+            gap: 18px;
             min-height: 0;
             overflow: hidden;
         }
 
         .sidebar{
             background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
-            border-radius:12px;padding:18px;box-shadow:var(--shadow);
-            height: 100%;
+            border-radius:12px;
+            padding:18px;
+            box-shadow:var(--shadow);
+            width: 280px;
+            flex-shrink: 0;
             overflow-y: auto;
-            position:sticky;top:0;
+            max-height: 100%;
         }
         .sidebar h3{margin:0 0 8px 0;font-size:0.95rem}
         .nav-list{display:flex;flex-direction:column;gap:8px}
@@ -116,14 +120,23 @@
         .nav-item:hover{background:#fff}
         .nav-item.active{background:linear-gradient(90deg,#eef2ff,#f0fdfa);border:1px solid rgba(99,102,241,0.08);color:#111827}
 
-        .files-area{
-            display:flex;flex-direction:column;
-            height: 100%;
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
             overflow: hidden;
+        }
+
+        .files-area{
+            flex: 1;
+            display:flex;
+            flex-direction:column;
             background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
             border-radius: 12px;
             padding: 18px;
             box-shadow: var(--shadow);
+            overflow: hidden;
         }
 
         .toolbar{
@@ -142,17 +155,19 @@
         .stat .value{font-weight:700;font-size:1.1rem}
         .stat .label{font-size:0.85rem;color:var(--muted)}
 
-        .files-container {
+        .files-scroll-container {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 5px;
+            padding-right: 5px;
             margin-top: 10px;
         }
 
         .files-wrap{
-            display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;
-            min-height: min-content;
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+            gap:14px;
+            padding: 5px;
         }
 
         .file-card{
@@ -191,7 +206,15 @@
         .modal-preview{width:100%;height:60vh;background:#f8fafc;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:auto}
         .modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid #eef2f7}
 
-        .empty-state{padding:24px;border-radius:12px;background:white;box-shadow:var(--shadow);text-align:center;color:var(--muted)}
+        .empty-state{
+            padding:24px;
+            border-radius:12px;
+            background:white;
+            box-shadow:var(--shadow);
+            text-align:center;
+            color:var(--muted);
+            margin: 20px;
+        }
         
         /* Notification styling */
         .notification-section {
@@ -321,24 +344,24 @@
 
         /* Scrollbar styling */
         .sidebar::-webkit-scrollbar,
-        .files-container::-webkit-scrollbar {
-            width: 6px;
+        .files-scroll-container::-webkit-scrollbar {
+            width: 8px;
         }
 
         .sidebar::-webkit-scrollbar-track,
-        .files-container::-webkit-scrollbar-track {
+        .files-scroll-container::-webkit-scrollbar-track {
             background: #f1f5f9;
             border-radius: 10px;
         }
 
         .sidebar::-webkit-scrollbar-thumb,
-        .files-container::-webkit-scrollbar-thumb {
+        .files-scroll-container::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 10px;
         }
 
         .sidebar::-webkit-scrollbar-thumb:hover,
-        .files-container::-webkit-scrollbar-thumb:hover {
+        .files-scroll-container::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
 
@@ -357,17 +380,41 @@
             border-radius: 10px;
         }
 
+        /* List view adjustments */
+        .list-view .files-wrap {
+            grid-template-columns: 1fr;
+        }
+        
+        .list-view .file-card {
+            grid-column: 1 / -1;
+        }
+
         @media (max-width:980px){
             .search{width:260px}
-            .main-grid{grid-template-columns:1fr}
-            .sidebar{position:relative;top:unset; height: auto;}
-            .app { height: auto; min-height: 100vh; }
+            .main-content-wrapper { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; max-height: 300px; }
+            .app { height: auto; min-height: 100vh; padding: 15px; }
+            body { overflow: auto; }
         }
+        
+        @media (max-width:768px){
+            .main-content-wrapper {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 400px;
+            }
+        }
+
         @media (max-width:560px){
             .search{display:none}
             .brand h1{font-size:1rem}
             .top-panel { flex-direction: column; align-items: flex-start; }
             .filters { flex-wrap: wrap; }
+            .files-wrap {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -445,7 +492,7 @@
         </div>
     </section>
 
-    <div class="main-grid">
+    <div class="main-content-wrapper">
         <aside class="sidebar">
             <h3>Navigation</h3>
             <div class="nav-list">
@@ -475,62 +522,64 @@
             <div id="favorites-list" style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
         </aside>
 
-        <main class="files-area">
-            <!-- Dashboard View -->
-            <div id="dashboard-view">
-                <div class="toolbar">
-                    <h2>Dashboard</h2>
-                    <div style="display:flex;gap:10px;align-items:center">
-                        <div id="current-view" style="font-size:0.9rem;color:var(--muted)">Showing all files</div>
+        <main class="main-content">
+            <div class="files-area">
+                <!-- Dashboard View -->
+                <div id="dashboard-view">
+                    <div class="toolbar">
+                        <h2>Dashboard</h2>
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <div id="current-view" style="font-size:0.9rem;color:var(--muted)">Showing all files</div>
+                        </div>
+                    </div>
+                    
+                    <div class="files-scroll-container">
+                        <div class="files-wrap" id="files-wrap" aria-live="polite">
+                            <!-- file cards injected here -->
+                        </div>
                     </div>
                 </div>
                 
-                <div class="files-container">
-                    <div class="files-wrap" id="files-wrap" aria-live="polite">
-                        <!-- file cards injected here -->
+                <!-- Notification Section -->
+                <div id="notification-view" style="display:none">
+                    <div class="notification-section">
+                        <h2>Notifications</h2>
+                        <div id="notifications-list">
+                            <!-- Notifications will be loaded here -->
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Notification Section -->
-            <div id="notification-view" style="display:none">
-                <div class="notification-section">
-                    <h2>Notifications</h2>
-                    <div id="notifications-list">
-                        <!-- Notifications will be loaded here -->
+                
+                <!-- About Me Section -->
+                <div id="about-view" style="display:none">
+                    <div class="about-section">
+                        <h2>About Me</h2>
+                        <p>Hello! I'm NikuTeck11.</p>
+                        <p>निकुटेक11 हब - एक फ्री एजुकेशनल प्लेटफॉर्म जहाँ students पा सकते हैं सभी study materials!</p>
+                        
+                        <h3>Connect With Me</h3>
+                        <div class="social-links">
+                            <a href="https://github.com/nikuteck11" class="social-link" target="_blank" title="GitHub">
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <a href="#" class="social-link" title="Twitter">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="social-link" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="https://www.instagram.com/its.ramsvrup05?igsh=MjZhNTVxMWc4cW1l" class="social-link" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- About Me Section -->
-            <div id="about-view" style="display:none">
-                <div class="about-section">
-                    <h2>About Me</h2>
-                    <p>Hello! I'm NikuTeck11.</p>
-                    <p>निकुटेक11 हब - एक फ्री एजुकेशनल प्लेटफॉर्म जहाँ students पा सकते हैं सभी study materials!</p>
-                    
-                    <h3>Connect With Me</h3>
-                    <div class="social-links">
-                        <a href="https://github.com/nikuteck11" class="social-link" target="_blank" title="GitHub">
-                            <i class="fab fa-github"></i>
-                        </a>
-                        <a href="#" class="social-link" title="Twitter">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="social-link" title="LinkedIn">
-                            <i class="fab fa-linkedin"></i>
-                        </a>
-                        <a href="https://www.instagram.com/its.ramsvrup05?igsh=MjZhNTVxMWc4cW1l" class="social-link" title="Instagram">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
 
-            <div id="empty" style="display:none">
-                <div class="empty-state">
-                    <h3>No files found</h3>
-                    <p>Add files to your GitHub repository folders to see them listed here.</p>
+                <div id="empty" style="display:none">
+                    <div class="empty-state">
+                        <h3>No files found</h3>
+                        <p>Add files to your GitHub repository folders to see them listed here.</p>
+                    </div>
                 </div>
             </div>
         </main>
@@ -925,16 +974,25 @@
     function renderFiles(files){
         const wrap = document.getElementById('files-wrap');
         const empty = document.getElementById('empty');
+        const filesContainer = document.querySelector('.files-scroll-container');
         
         if(!files || files.length === 0){
             wrap.innerHTML = '';
             empty.style.display = 'block';
+            filesContainer.style.overflowY = 'hidden';
             return;
         }
 
         empty.style.display = 'none';
         wrap.innerHTML = '';
-        const viewList = selectedView === 'list';
+        filesContainer.style.overflowY = 'auto';
+
+        // Apply view class
+        if (selectedView === 'list') {
+            wrap.classList.add('list-view');
+        } else {
+            wrap.classList.remove('list-view');
+        }
 
         // Group files by subject for better organization
         const filesBySubject = {};
@@ -964,21 +1022,11 @@
                 `;
                 subjectSection.appendChild(subjectHeader);
 
-                const filesGrid = document.createElement('div');
-                filesGrid.className = 'files-wrap';
-                filesGrid.style.gridTemplateColumns = viewList ? '1fr' : 'repeat(auto-fill,minmax(240px,1fr))';
-                filesGrid.style.gap = '14px';
-                
                 subjectFiles.forEach(f => {
                     const card = createFileCard(f);
-                    if (viewList) {
-                        card.style.gridColumn = '1/-1';
-                        card.style.display = 'flex';
-                    }
-                    filesGrid.appendChild(card);
+                    subjectSection.appendChild(card);
                 });
                 
-                subjectSection.appendChild(filesGrid);
                 wrap.appendChild(subjectSection);
             }
         });
@@ -986,6 +1034,7 @@
         if (wrap.children.length === 0) {
             wrap.innerHTML = '';
             empty.style.display = 'block';
+            filesContainer.style.overflowY = 'hidden';
         }
     }
 
@@ -1157,12 +1206,14 @@
     document.getElementById('filter-type').addEventListener('change', ()=>renderFiles(filteredAndSorted()));
     document.getElementById('sort-by').addEventListener('change', ()=>renderFiles(filteredAndSorted()));
     document.getElementById('view-grid').addEventListener('click', ()=>{
-        selectedView='grid';renderFiles(filteredAndSorted());
+        selectedView='grid';
+        renderFiles(filteredAndSorted());
         document.getElementById('view-grid').setAttribute('aria-pressed','true');
         document.getElementById('view-list').setAttribute('aria-pressed','false');
     });
     document.getElementById('view-list').addEventListener('click', ()=>{
-        selectedView='list';renderFiles(filteredAndSorted());
+        selectedView='list';
+        renderFiles(filteredAndSorted());
         document.getElementById('view-grid').setAttribute('aria-pressed','false');
         document.getElementById('view-list').setAttribute('aria-pressed','true');
     });
